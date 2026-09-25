@@ -60,7 +60,7 @@ function current_user(): ?array {
     if (empty($_SESSION['user_id'])) return null;
 
     try {
-        $stmt = db()->prepare('SELECT id, username, name, profile FROM users WHERE id = :id LIMIT 1');
+        $stmt = db()->prepare('SELECT id, username, email, name, profile FROM users WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => (int)$_SESSION['user_id']]);
         $user = $stmt->fetch();
         return $user ?: null;

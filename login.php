@@ -15,8 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
-    $stmt = db()->prepare('SELECT id, username, name, profile, password_hash FROM users WHERE LOWER(username) = LOWER(:username) LIMIT 1');
-    $stmt->execute(['username' => $username]);
+    $stmt = db()->prepare('SELECT id, username, email, name, profile, password_hash FROM users WHERE LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:email) LIMIT 1');
+    $stmt->execute(['username' => $username, 'email' => $username]);
     $match = $stmt->fetch();
 
     if ($match && password_verify($password, (string)$match['password_hash'])) {
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
 
         <form method="post" class="login-form" autocomplete="on">
             <?=csrf_field()?>
-            <label>Usuário
+            <label>Usuário ou e-mail
                 <input name="username" autocomplete="username" value="<?=e($_POST['username'] ?? 'zalen')?>" required autofocus <?=$dbError?'disabled':''?>>
             </label>
             <label>Senha
@@ -88,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
                 <code>zalen / 123456</code>
             </div>
         </details>
+        <p class="auth-foot">Ainda não tem conta? <a href="register.php">Criar conta</a></p>
     </section>
 </main>
 <script src="assets/js/app.js"></script>
