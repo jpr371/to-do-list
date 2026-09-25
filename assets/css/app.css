@@ -344,6 +344,9 @@ a{color:inherit}
 .demo-disclosure summary .icon{width:14px;height:14px;transition:transform var(--dur-base) var(--ease)}
 .demo-disclosure[open] summary .icon{transform:rotate(90deg)}
 .demo-disclosure summary:hover{color:var(--gold)}
+.auth-foot{margin-top:18px;color:var(--muted);font-size:.9rem;text-align:center}
+.auth-foot a{color:var(--gold);font-weight:800;text-decoration:none}
+.auth-foot a:hover{text-decoration:underline}
 .mobile-brand{display:none;font-weight:900;color:var(--gold);font-size:1.35rem;margin-bottom:var(--space-7)}
 
 /* ---------- animações ---------- */

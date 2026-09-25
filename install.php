@@ -20,12 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "CREATE TABLE IF NOT EXISTS users (
                 id INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 username VARCHAR(50) NOT NULL,
+                email VARCHAR(255) NULL,
                 name VARCHAR(100) NOT NULL,
                 profile VARCHAR(100) NOT NULL DEFAULT 'Freelancer / Criador',
                 password_hash VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (id),
-                UNIQUE KEY uq_users_username (username)
+                UNIQUE KEY uq_users_username (username),
+                UNIQUE KEY uq_users_email (email)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
             "CREATE TABLE IF NOT EXISTS tasks (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -59,6 +61,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($statements as $sql) $pdo->exec($sql);
 
         // Migração segura para quem já instalou a versão anterior.
+        $emailColumnCheck = $pdo->query("SHOW COLUMNS FROM users LIKE 'email'");
+        if (!$emailColumnCheck->fetch()) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL AFTER username");
+            $migrated = true;
+        }
+        $pdo->exec("UPDATE users SET email = NULL WHERE email = ''");
+        $emailIndexCheck = $pdo->query("SHOW INDEX FROM users WHERE Key_name = 'uq_users_email'");
+        if (!$emailIndexCheck->fetch()) {
+            $pdo->exec("ALTER TABLE users ADD UNIQUE KEY uq_users_email (email)");
+            $migrated = true;
+        }
         $columnCheck = $pdo->query("SHOW COLUMNS FROM tasks LIKE 'category'");
         if (!$columnCheck->fetch()) {
             $pdo->exec("ALTER TABLE tasks ADD COLUMN category VARCHAR(60) NULL AFTER description");
@@ -72,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $hash = '$2y$12$W.ND0q3g0psgNSS8LlVUZeg0O3y4mHGstoURn.8lj2cir.UOX4evK';
         $stmt = $pdo->prepare(
-            "INSERT INTO users (username, name, profile, password_hash)
-             VALUES ('zalen', 'Zalen', 'Freelancer / Criador', :hash)
+            "INSERT INTO users (username, email, name, profile, password_hash)
+             VALUES ('zalen', 'zalen@example.com', 'Zalen', 'Freelancer / Criador', :hash)
              ON DUPLICATE KEY UPDATE name = VALUES(name), profile = VALUES(profile), password_hash = VALUES(password_hash)"
         );
         $stmt->execute(['hash' => $hash]);
