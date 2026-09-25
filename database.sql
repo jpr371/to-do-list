@@ -1,3 +1,6 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 DROP DATABASE IF EXISTS taskflow_lite;
 CREATE DATABASE taskflow_lite
   CHARACTER SET utf8mb4
