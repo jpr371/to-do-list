@@ -2,9 +2,9 @@
     </div>
 </div>
 <div class="overlay center" id="overlayDelete">
-    <div class="modal-box">
-        <div class="ic-danger">!</div>
-        <h3>Excluir esta tarefa?</h3>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+        <div class="ic-danger"><?=icon('trash')?></div>
+        <h3 id="deleteTitle">Excluir esta tarefa?</h3>
         <p>Essa ação não pode ser desfeita. A tarefa será removida permanentemente.</p>
         <div class="row">
             <button class="btn btn-ghost" type="button" data-confirm-cancel>Cancelar</button>

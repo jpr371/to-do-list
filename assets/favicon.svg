@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#ffd600"/>
-  <text x="32" y="43" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#111111">TF</text>
+  <rect x="6" y="8" width="52" height="52" rx="14" fill="#1a1714"/>
+  <rect x="4" y="4" width="52" height="52" rx="14" fill="#ffd23f" stroke="#1a1714" stroke-width="4"/>
+  <polyline points="17 31 26 40 43 21" fill="none" stroke="#1a1714" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

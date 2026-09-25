@@ -97,43 +97,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="TaskFlow — instalador do banco de dados MySQL/MariaDB.">
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-    <title>Instalar banco • TaskFlow</title>
-    <link rel="stylesheet" href="assets/css/app.css">
+<?php $headTitle = 'Instalar banco • TaskFlow'; include __DIR__ . '/includes/head.php'; ?>
 </head>
-<body class="login-body">
-<main class="login-shell">
-    <section class="login-brand-panel">
-        <div class="brand-mark">DB</div>
-        <span class="kicker gold"><?=icon('database')?>INSTALAÇÃO MYSQL</span>
-        <h1>Prepare o banco<br>em um clique.</h1>
-        <p>O instalador cria ou atualiza o banco sem apagar suas tarefas existentes.</p>
-        <div class="login-feature-row"><?=icon('check')?> Banco: <?=htmlspecialchars(DB_NAME)?></div>
-        <div class="login-feature-row"><?=icon('check')?> Tabelas: users, tasks e task_activity</div>
-        <div class="login-feature-row"><?=icon('check')?> Categoria, prazos e filtros completos</div>
-        <div class="login-feature-row"><?=icon('check')?> Compatível com MySQL/MariaDB do XAMPP</div>
+<body>
+<div class="theme-float"><?=theme_toggle()?></div>
+<div class="auth-wrap">
+    <section class="auth-side">
+        <div class="mark"><?=brand_mark()?>TaskFlow</div>
+        <div>
+            <h1>Prepare o banco <em>em um clique.</em></h1>
+            <p class="quote">O instalador cria ou atualiza o banco sem apagar suas tarefas existentes.</p>
+            <ul class="install-list">
+                <li><?=icon('check')?>Banco: <?=htmlspecialchars(DB_NAME)?></li>
+                <li><?=icon('check')?>Tabelas: users, tasks e task_activity</li>
+                <li><?=icon('check')?>Categorias, prazos e filtros completos</li>
+                <li><?=icon('check')?>Compatível com MySQL/MariaDB do XAMPP</li>
+            </ul>
+        </div>
+        <p class="foot">Instalação MySQL</p>
     </section>
-    <section class="login-card">
-        <h2>Instalar / atualizar banco</h2>
-        <p class="muted">Inicie o MySQL no XAMPP antes de continuar.</p>
+    <section class="auth-form-col">
+        <div class="auth-box">
+            <div class="mark mark-mobile"><?=brand_mark()?>TaskFlow</div>
+            <div class="eyebrow">Instalador</div>
+            <h2>Instalar / <em>atualizar banco.</em></h2>
+            <p class="sub">Inicie o MySQL no XAMPP antes de continuar.</p>
 
-        <?php if ($success): ?>
-            <div class="alert success"><?=icon('check-circle')?><span>Banco pronto com sucesso.<?=$migrated?' A estrutura antiga foi atualizada.':''?></span></div>
-            <a class="btn-primary login-submit" href="login.php">Ir para o login</a>
-            <div class="login-demo"><span>Login</span><code>zalen / 123456</code></div>
-        <?php else: ?>
-            <?php if ($error): ?><div class="alert error"><?=icon('alert')?><span><?=htmlspecialchars($error)?></span></div><?php endif; ?>
-            <div class="login-demo"><span>Servidor</span><code><?=htmlspecialchars(DB_HOST . ':' . DB_PORT)?></code></div>
-            <div class="login-demo"><span>Usuário MySQL</span><code><?=htmlspecialchars(DB_USER)?></code></div>
-            <form method="post" class="login-form">
-                <button class="btn-primary login-submit" type="submit">Criar / atualizar banco</button>
-            </form>
-            <p class="muted" style="margin-top:var(--space-4)">Se seu MySQL usa senha, altere <code>config/database.php</code> antes de instalar.</p>
-        <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="auth-banner success-banner"><?=icon('check-circle','sm')?><span>Banco pronto com sucesso.<?=$migrated?' A estrutura antiga foi atualizada.':''?></span></div>
+                <div class="auth-card">
+                    <div class="kv"><span><?=icon('user','sm')?>Login</span><code>zalen / 123456</code></div>
+                    <a class="btn btn-primary btn-block" style="margin-top:18px" href="login.php">Ir para o login<?=icon('arrow-right','sm')?></a>
+                </div>
+            <?php else: ?>
+                <?php if ($error): ?><div class="auth-banner"><?=icon('alert','sm')?><span><?=htmlspecialchars($error)?></span></div><?php endif; ?>
+                <form method="post" class="auth-card">
+                    <div class="kv"><span><?=icon('server','sm')?>Servidor</span><code><?=htmlspecialchars(DB_HOST . ':' . DB_PORT)?></code></div>
+                    <div class="kv"><span><?=icon('user','sm')?>Usuário MySQL</span><code><?=htmlspecialchars(DB_USER)?></code></div>
+                    <div class="kv"><span><?=icon('database','sm')?>Banco</span><code><?=htmlspecialchars(DB_NAME)?></code></div>
+                    <button class="btn btn-primary btn-block" style="margin-top:18px" type="submit"><?=icon('database','sm')?>Criar / atualizar banco</button>
+                </form>
+                <p class="auth-foot">Se seu MySQL usa senha, altere <code>config/database.php</code> antes de instalar.</p>
+            <?php endif; ?>
+        </div>
     </section>
-</main>
+</div>
+<script src="assets/js/app.js"></script>
 </body>
 </html>

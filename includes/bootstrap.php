@@ -201,3 +201,38 @@ function due_class(?string $date, string $status): string {
     if ($date <= $limit) return 'upcoming';
     return '';
 }
+
+function format_date_long(?string $date = null): string {
+    $ts = $date ? strtotime($date) : time();
+    $days = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    $months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    return $days[(int)date('w', $ts)] . ', ' . date('j', $ts) . ' de ' . $months[(int)date('n', $ts) - 1];
+}
+
+function month_short(string $date): string {
+    return ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][(int)date('n', strtotime($date)) - 1];
+}
+
+function status_class(string $status): string {
+    return ['inbox'=>'st-inbox','pending'=>'st-pendente','progress'=>'st-andamento','review'=>'st-revisao','done'=>'st-concluida'][$status] ?? 'st-inbox';
+}
+
+function priority_class(string $priority): string {
+    return ['urgent'=>'pri-urgente','high'=>'pri-alta','normal'=>'pri-media','low'=>'pri-baixa'][$priority] ?? 'pri-media';
+}
+
+function status_icon(string $status): string {
+    return ['inbox'=>'inbox','pending'=>'clock','progress'=>'activity','review'=>'eye','done'=>'check-circle'][$status] ?? 'inbox';
+}
+
+function priority_icon(string $priority): string {
+    return ['low'=>'arrow-down','normal'=>'minus','high'=>'arrow-up','urgent'=>'zap'][$priority] ?? 'minus';
+}
+
+function status_pill(string $status): string {
+    return '<span class="pill ' . status_class($status) . '">' . icon(status_icon($status), 'xs') . e(statuses()[$status] ?? $status) . '</span>';
+}
+
+function priority_pill(string $priority): string {
+    return '<span class="pill ' . priority_class($priority) . '">' . icon(priority_icon($priority), 'xs') . e(priorities()[$priority] ?? $priority) . '</span>';
+}

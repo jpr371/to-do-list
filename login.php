@@ -32,50 +32,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-    <title>Entrar • TaskFlow</title>
-    <link rel="stylesheet" href="assets/css/app.css">
+<?php $headTitle = 'Entrar • TaskFlow'; include __DIR__ . '/includes/head.php'; ?>
 </head>
 <body>
 <div id="toastwrap"></div>
+<div class="theme-float"><?=theme_toggle()?></div>
 <section class="screen" id="screen-login">
     <div class="auth-wrap">
         <div class="auth-side">
-            <div class="mark"><span class="dot"></span>TaskFlow</div>
+            <div class="mark"><?=brand_mark()?>TaskFlow</div>
             <div>
-                <h1>Organize seu trabalho. Recupere seu tempo.</h1>
-                <p class="quote" style="margin-top:16px">"Desde que uso o TaskFlow não perco mais prazo — e minha equipe finalmente sabe o que está em andamento."</p>
+                <h1>Organize seu trabalho. <em>Recupere seu tempo.</em></h1>
+                <p class="quote">Tarefas, prazos e prioridades num só caderno, do primeiro rascunho à entrega.</p>
+                <div class="auth-preview" aria-hidden="true">
+                    <div class="ap-row done"><span class="ap-chk on"><?=icon('check')?></span><span class="t">Revisar proposta do cliente</span><span class="ap-tag ok"><?=icon('check','xs')?>Feito</span></div>
+                    <div class="ap-row"><span class="ap-chk"></span><span class="t">Preparar apresentação</span><span class="ap-tag hot"><?=icon('zap','xs')?>Hoje</span></div>
+                    <div class="ap-row"><span class="ap-chk"></span><span class="t">Planejar próxima sprint</span><span class="ap-tag"><?=icon('calendar','xs')?>Sex</span></div>
+                </div>
             </div>
-            <p class="quote">© 2026 TaskFlow. Feito para times que entregam.</p>
+            <p class="foot">© 2026 TaskFlow · feito para quem entrega</p>
         </div>
         <div class="auth-form-col">
             <div class="auth-box">
-                <h2>Bem-vindo de volta</h2>
+                <a class="mark mark-mobile" href="login.php"><?=brand_mark()?>TaskFlow</a>
+                <div class="eyebrow">Entrar</div>
+                <h2>Bem-vindo <em>de volta.</em></h2>
                 <p class="sub">Entre para continuar de onde parou.</p>
-                <?php if (($_GET['registered'] ?? '') === '1'): ?><div class="auth-banner success-banner">Conta criada. Entre com seu e-mail e senha.</div><?php endif; ?>
-                <?php if ($dbError): ?><div class="auth-banner"><?=e($dbError)?> <a href="install.php">Abrir instalador</a></div><?php endif; ?>
-                <?php if ($error): ?><div class="auth-banner"><?=e($error)?></div><?php endif; ?>
-                <form method="post" autocomplete="on">
+                <?php if (($_GET['registered'] ?? '') === '1'): ?><div class="auth-banner success-banner"><?=icon('check-circle','sm')?>Conta criada. Entre com seu e-mail e senha.</div><?php endif; ?>
+                <?php if ($dbError): ?><div class="auth-banner"><?=icon('database','sm')?><span><?=e($dbError)?> <a href="install.php">Abrir instalador</a></span></div><?php endif; ?>
+                <?php if ($error): ?><div class="auth-banner"><?=icon('alert','sm')?><?=e($error)?></div><?php endif; ?>
+                <form class="auth-card" method="post" autocomplete="on">
                     <?=csrf_field()?>
                     <div class="field">
-                        <label>E-mail ou usuário</label>
-                        <input name="identifier" autocomplete="username" placeholder="voce@empresa.com" value="<?=e($_POST['identifier'] ?? '')?>" required autofocus <?=$dbError?'disabled':''?>>
+                        <label for="identifier"><?=icon('user')?>E-mail ou usuário</label>
+                        <div class="input-ic"><?=icon('mail')?><input id="identifier" name="identifier" autocomplete="username" placeholder="voce@empresa.com" value="<?=e($_POST['identifier'] ?? '')?>" required autofocus <?=$dbError?'disabled':''?>></div>
                     </div>
                     <div class="field">
-                        <label>Senha</label>
-                        <div class="pw-wrap">
-                            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required <?=$dbError?'disabled':''?>>
-                            <button type="button" data-show-password>Mostrar</button>
-                        </div>
+                        <label for="password"><?=icon('lock')?>Senha</label>
+                        <div class="pw-wrap input-ic"><?=icon('lock')?><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required <?=$dbError?'disabled':''?>><button type="button" data-show-password>Mostrar</button></div>
                     </div>
-                    <button class="btn btn-primary" style="width:100%;justify-content:center" type="submit" <?=$dbError?'disabled':''?>>Entrar</button>
+                    <button class="btn btn-primary btn-block" type="submit" <?=$dbError?'disabled':''?>>Entrar<?=icon('arrow-right','sm')?></button>
+                    <p class="auth-hint"><?=icon('user')?>Acesso inicial: <strong>zalen</strong> / <strong>123456</strong></p>
                 </form>
                 <p class="auth-foot">Ainda não tem conta? <a href="register.php">Criar conta</a></p>
-                <p class="auth-foot">Acesso inicial: <strong>zalen / 123456</strong></p>
             </div>
         </div>
     </div>

@@ -43,34 +43,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-    <title>Criar conta • TaskFlow</title>
-    <link rel="stylesheet" href="assets/css/app.css">
+<?php $headTitle = 'Criar conta • TaskFlow'; include __DIR__ . '/includes/head.php'; ?>
 </head>
 <body>
+<div class="theme-float"><?=theme_toggle()?></div>
 <section class="screen" id="screen-signup">
     <div class="auth-wrap">
         <div class="auth-side">
-            <div class="mark"><span class="dot"></span>TaskFlow</div>
-            <h1>Um lugar só para cada tarefa, prazo e prioridade.</h1>
-            <p class="quote">© 2026 TaskFlow.</p>
+            <div class="mark"><?=brand_mark()?>TaskFlow</div>
+            <div>
+                <h1>Um caderno só para cada <em>tarefa, prazo e prioridade.</em></h1>
+                <div class="auth-preview" aria-hidden="true">
+                    <div class="ap-row"><span class="ap-chk on"><?=icon('check')?></span><span class="t">Crie tarefas em segundos</span><span class="ap-tag"><?=icon('plus','xs')?>Nova</span></div>
+                    <div class="ap-row"><span class="ap-chk on"><?=icon('check')?></span><span class="t">Arraste no Kanban para avançar</span><span class="ap-tag"><?=icon('kanban','xs')?>Quadro</span></div>
+                    <div class="ap-row"><span class="ap-chk on"><?=icon('check')?></span><span class="t">Nunca mais perca um prazo</span><span class="ap-tag ok"><?=icon('calendar','xs')?>Em dia</span></div>
+                </div>
+            </div>
+            <p class="foot">© 2026 TaskFlow</p>
         </div>
         <div class="auth-form-col">
             <div class="auth-box">
-                <h2>Criar conta</h2>
+                <a class="mark mark-mobile" href="login.php"><?=brand_mark()?>TaskFlow</a>
+                <div class="eyebrow">Criar conta</div>
+                <h2>Abra seu <em>caderno.</em></h2>
                 <p class="sub">Leva menos de um minuto.</p>
-                <?php foreach ($errors as $error): ?><div class="auth-banner"><?=e($error)?></div><?php endforeach; ?>
-                <form method="post" autocomplete="on">
+                <?php foreach ($errors as $error): ?><div class="auth-banner"><?=icon('alert','sm')?><?=e($error)?></div><?php endforeach; ?>
+                <form class="auth-card" method="post" autocomplete="on">
                     <?=csrf_field()?>
-                    <div class="field"><label>Nome completo</label><input name="name" maxlength="100" autocomplete="name" value="<?=e($name)?>" placeholder="Seu nome" required autofocus></div>
-                    <div class="field"><label>E-mail</label><input name="email" type="email" maxlength="255" autocomplete="email" value="<?=e($email)?>" placeholder="voce@empresa.com" required></div>
-                    <div class="field"><label>Senha</label><div class="pw-wrap"><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required><button type="button" data-show-password>Mostrar</button></div><div class="strength"><span></span><span></span><span></span></div></div>
-                    <div class="field"><label>Confirmar senha</label><input name="password_confirmation" type="password" minlength="8" autocomplete="new-password" placeholder="Repita a senha" required></div>
-                    <button class="btn btn-primary" style="width:100%;justify-content:center" type="submit">Criar conta</button>
+                    <div class="field"><label for="r-name"><?=icon('user')?>Nome completo</label><div class="input-ic"><?=icon('user')?><input id="r-name" name="name" maxlength="100" autocomplete="name" value="<?=e($name)?>" placeholder="Seu nome" required autofocus></div></div>
+                    <div class="field"><label for="r-email"><?=icon('mail')?>E-mail</label><div class="input-ic"><?=icon('mail')?><input id="r-email" name="email" type="email" maxlength="255" autocomplete="email" value="<?=e($email)?>" placeholder="voce@empresa.com" required></div></div>
+                    <div class="field"><label for="password"><?=icon('lock')?>Senha</label><div class="pw-wrap input-ic"><?=icon('lock')?><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required><button type="button" data-show-password>Mostrar</button></div><div class="strength" data-strength><span></span><span></span><span></span></div></div>
+                    <div class="field"><label for="r-confirm"><?=icon('lock')?>Confirmar senha</label><div class="input-ic"><?=icon('check-circle')?><input id="r-confirm" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" placeholder="Repita a senha" required></div></div>
+                    <button class="btn btn-primary btn-block" type="submit">Criar conta<?=icon('arrow-right','sm')?></button>
                 </form>
                 <p class="auth-foot">Já tem conta? <a href="login.php">Entrar</a></p>
             </div>

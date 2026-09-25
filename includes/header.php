@@ -5,53 +5,62 @@ if (!isset($activePage)) $activePage = '';
 $names = preg_split('/\s+/', trim((string)($user['name'] ?? 'User'))) ?: ['User'];
 $initials = strtoupper(first_char($names[0] ?? 'U') . first_char($names[1] ?? ''));
 $email = $user['email'] ?? $user['username'] ?? '';
+$headTitle = $pageTitle . ' • ' . APP_NAME;
+$tips = [
+    ['Uma coisa de cada vez.', 'Arraste cartões no Kanban para avançar tarefas.'],
+    ['Prazo é promessa.', 'Filtre por “Próximos 7 dias” para planejar a semana.'],
+    ['Feito > perfeito.', 'Selecione várias tarefas na lista para mudar o status de uma vez.'],
+    ['Menos abas, mais foco.', 'Use categorias para separar trabalho, estudos e vida pessoal.'],
+];
+$tip = $tips[(int)date('z') % count($tips)];
 ?>
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#14171f">
-    <meta name="description" content="TaskFlow — organize tarefas, prazos, categorias e fluxo de trabalho num só lugar.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-    <title><?=e($pageTitle)?> • <?=APP_NAME?></title>
-    <link rel="stylesheet" href="assets/css/app.css">
+<?php include __DIR__ . '/head.php'; ?>
 </head>
 <body>
 <div id="toastwrap"></div>
 <div class="app show" data-csrf="<?=e(csrf_token())?>">
     <aside class="sidebar" id="sidebar">
-        <a class="mark" href="dashboard.php"><span class="dot"></span>TaskFlow</a>
-        <a class="nav-item <?=$activePage==='dashboard'?'active':''?>" data-screen="dashboard" href="dashboard.php"><span class="ic">◇</span>Painel</a>
-        <a class="nav-item <?=$activePage==='tasks'?'active':''?>" data-screen="tasks" href="tasks.php"><span class="ic">≣</span>Todas as tarefas</a>
-        <a class="nav-item <?=$activePage==='kanban'?'active':''?>" data-screen="kanban" href="kanban.php"><span class="ic">▥</span>Kanban</a>
-        <a class="nav-item <?=$activePage==='categories'?'active':''?>" data-screen="categories" href="tasks.php?view=category"><span class="ic">◈</span>Categorias</a>
-        <div class="cta"><a class="btn btn-primary" style="width:100%;justify-content:center" href="tasks.php?action=new">+ Nova tarefa</a></div>
+        <a class="mark" href="dashboard.php"><?=brand_mark()?>TaskFlow</a>
+        <div class="nav-label">Caderno</div>
+        <a class="nav-item <?=$activePage==='dashboard'?'active':''?>" data-screen="dashboard" href="dashboard.php"><?=icon('home')?>Painel</a>
+        <a class="nav-item <?=$activePage==='tasks'?'active':''?>" data-screen="tasks" href="tasks.php"><?=icon('list')?>Todas as tarefas</a>
+        <a class="nav-item <?=$activePage==='kanban'?'active':''?>" data-screen="kanban" href="kanban.php"><?=icon('kanban')?>Kanban</a>
+        <a class="nav-item <?=$activePage==='categories'?'active':''?>" data-screen="categories" href="tasks.php?view=category"><?=icon('tag')?>Categorias</a>
+        <div class="cta"><a class="btn btn-primary btn-block" href="tasks.php?action=new"><?=icon('plus','sm')?>Nova tarefa</a></div>
+        <div class="sidebar-note"><b><?=e($tip[0])?></b><?=e($tip[1])?></div>
         <div class="sidebar-foot">
             <div class="user-menu hidden" id="userMenu">
-                <a href="dashboard.php">Meu perfil</a>
-                <a href="tasks.php">Preferências</a>
-                <a class="danger" href="logout.php">Sair da conta</a>
+                <a href="dashboard.php"><?=icon('user')?>Meu perfil</a>
+                <a href="tasks.php"><?=icon('settings')?>Preferências</a>
+                <hr>
+                <a class="danger" href="logout.php"><?=icon('logout')?>Sair da conta</a>
             </div>
-            <button class="user-row" type="button" data-profile-toggle>
+            <button class="user-row" type="button" data-profile-toggle aria-haspopup="menu">
                 <div class="avatar"><?=e($initials ?: 'U')?></div>
                 <div><div class="user-name"><?=e($user['name'] ?? '')?></div><div class="user-mail"><?=e($email)?></div></div>
+                <?=icon('chevrons','sm chev-ud')?>
             </button>
         </div>
     </aside>
+    <div class="sidebar-scrim" data-menu-close></div>
 
     <div class="main">
         <header class="topbar">
-            <div style="display:flex;align-items:center;gap:12px">
-                <button class="menubtn" type="button" data-menu-toggle>☰</button>
-                <h1><?=e($pageTitle)?></h1>
+            <div class="tb-title">
+                <button class="menubtn" type="button" data-menu-toggle aria-label="Abrir menu"><?=icon('menu')?></button>
+                <div>
+                    <div class="crumb"><?=icon('calendar')?><?=e(format_date_long())?></div>
+                    <h1><?=e($pageTitle)?></h1>
+                </div>
             </div>
             <div class="actions">
-                <?php if ($activePage === 'tasks'): ?><a class="btn btn-primary btn-sm" href="tasks.php?action=new">+ Nova tarefa</a><?php endif; ?>
+                <?=theme_toggle()?>
+                <?php if (in_array($activePage, ['tasks','kanban','categories'], true)): ?><a class="btn btn-primary" href="tasks.php?action=new"><?=icon('plus','sm')?><span class="lbl">Nova tarefa</span></a><?php endif; ?>
             </div>
         </header>
         <main class="content">
-            <?php if ($msg = flash('success')): ?><div class="auth-banner success-banner"><?=e($msg)?></div><?php endif; ?>
-            <?php if ($msg = flash('error')): ?><div class="auth-banner"><?=e($msg)?></div><?php endif; ?>
+            <?php if ($msg = flash('success')): ?><div class="auth-banner success-banner" data-autohide><?=icon('check-circle','sm')?><?=e($msg)?></div><?php endif; ?>
+            <?php if ($msg = flash('error')): ?><div class="auth-banner"><?=icon('alert','sm')?><?=e($msg)?></div><?php endif; ?>
