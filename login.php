@@ -12,11 +12,11 @@ try {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
     verify_csrf($_POST['csrf'] ?? null);
-    $username = trim((string)($_POST['username'] ?? ''));
+    $identifier = trim((string)($_POST['identifier'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
-    $stmt = db()->prepare('SELECT id, username, email, name, profile, password_hash FROM users WHERE LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:email) LIMIT 1');
-    $stmt->execute(['username' => $username, 'email' => $username]);
+    $stmt = db()->prepare('SELECT id, username, name, profile, password_hash FROM users WHERE LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:email) LIMIT 1');
+    $stmt->execute(['username' => $identifier, 'email' => $identifier]);
     $match = $stmt->fetch();
 
     if ($match && password_verify($password, (string)$match['password_hash'])) {
@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
         <div class="mobile-brand">TaskFlow</div>
         <h2>Bem-vindo de volta</h2>
         <p class="muted">Entre para continuar gerenciando seu fluxo.</p>
+        <?php if (($_GET['registered'] ?? '') === '1'): ?><div class="alert success">Conta criada. Entre com seu e-mail e senha.</div><?php endif; ?>
 
         <?php if ($dbError): ?>
             <div class="alert error"><?=icon('alert')?><span><?=e($dbError)?><br><a href="install.php" style="color:inherit;text-decoration:underline">Abrir instalador do banco</a></span></div>
@@ -65,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
 
         <form method="post" class="login-form" autocomplete="on">
             <?=csrf_field()?>
-            <label>Usuário ou e-mail
-                <input name="username" autocomplete="username" value="<?=e($_POST['username'] ?? 'zalen')?>" required autofocus <?=$dbError?'disabled':''?>>
+            <label>E-mail ou usuário
+                <input name="identifier" autocomplete="username" value="<?=e($_POST['identifier'] ?? '')?>" required autofocus <?=$dbError?'disabled':''?>>
             </label>
             <label>Senha
                 <div class="password-wrap">
@@ -80,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
             </label>
             <button class="btn-primary login-submit" type="submit" <?=$dbError?'disabled':''?>>Entrar</button>
         </form>
+        <p class="muted">Ainda não tem conta? <a href="register.php">Criar conta</a></p>
 
         <details class="demo-disclosure">
             <summary><?=icon('arrow-right')?> Credenciais de demonstração</summary>
@@ -88,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
                 <code>zalen / 123456</code>
             </div>
         </details>
-        <p class="auth-foot">Ainda não tem conta? <a href="register.php">Criar conta</a></p>
     </section>
 </main>
 <script src="assets/js/app.js"></script>

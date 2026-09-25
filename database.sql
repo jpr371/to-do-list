@@ -53,7 +53,4 @@ VALUES (
     'Freelancer / Criador',
     '$2y$12$W.ND0q3g0psgNSS8LlVUZeg0O3y4mHGstoURn.8lj2cir.UOX4evK'
 )
-ON DUPLICATE KEY UPDATE
-    name = VALUES(name),
-    profile = VALUES(profile),
-    password_hash = VALUES(password_hash);
+ON DUPLICATE KEY UPDATE username = username;

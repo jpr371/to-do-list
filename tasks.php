@@ -15,10 +15,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = valid_status((string)($_POST['status'] ?? 'inbox'));
         $priority = valid_priority((string)($_POST['priority'] ?? 'normal'));
         $due = trim((string)($_POST['due_date'] ?? ''));
-        if ($due !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $due)) $due = '';
+        $parsedDue = $due !== '' ? DateTimeImmutable::createFromFormat('!Y-m-d', $due) : null;
+        $existingTask = $id > 0 ? find_user_task($uid, $id) : null;
+        if ($id > 0 && !$existingTask) {
+            flash('error', 'Tarefa não encontrada.');
+            redirect('tasks.php');
+        }
+        if ($due !== '' && (!$parsedDue || $parsedDue->format('Y-m-d') !== $due || ($due < date('Y-m-d') && $due !== ($existingTask['due_date'] ?? null)))) {
+            flash('error', 'Informe uma data válida, a partir de hoje.');
+            redirect($id > 0 ? 'tasks.php?action=edit&id=' . $id : 'tasks.php?action=new');
+        }
 
         if ($title === '') {
             flash('error', 'Informe um título para a tarefa.');
+            redirect($id > 0 ? 'tasks.php?action=edit&id=' . $id : 'tasks.php?action=new');
+        }
+        if (strlen($title) > 120) {
+            flash('error', 'O título deve ter até 120 caracteres.');
             redirect($id > 0 ? 'tasks.php?action=edit&id=' . $id : 'tasks.php?action=new');
         }
 
@@ -75,6 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Tarefa excluída.');
         }
         redirect('tasks.php');
+    }
+
+    if ($action === 'reopen') {
+        $id = (int)($_POST['id'] ?? 0);
+        $task = find_user_task($uid, $id);
+        if ($task && $task['status'] === 'done') {
+            $stmt = db()->prepare("UPDATE tasks SET status = 'pending' WHERE id = :id AND user_id = :uid AND status = 'done'");
+            $stmt->execute(['id' => $id, 'uid' => $uid]);
+            log_activity($uid, 'Tarefa reaberta: ' . $task['title']);
+            flash('success', 'Tarefa reaberta.');
+        }
+        redirect($task ? 'tasks.php?action=view&id=' . $id : 'tasks.php');
     }
 
     if ($action === 'bulk_status') {
@@ -166,7 +191,11 @@ if ($view === 'category') {
 }
 
 $editTask = null;
+$detailTask = null;
 $modalOpen = ($_GET['action'] ?? '') === 'new';
+if (($_GET['action'] ?? '') === 'view' && !empty($_GET['id'])) {
+    $detailTask = find_user_task($uid, (int)$_GET['id']);
+}
 if (($_GET['action'] ?? '') === 'edit' && !empty($_GET['id'])) {
     $editTask = find_user_task($uid, (int)$_GET['id']);
     $modalOpen = $editTask !== null;
@@ -221,7 +250,7 @@ include __DIR__ . '/includes/header.php';
                 <header class="category-group-head"><div class="category-title"><span class="section-icon small"><?=icon('folder')?></span><h3><?=e($categoryName)?></h3></div><span class="category-count"><?=count($categoryTasks)?></span></header>
                 <div class="category-task-list">
                     <?php foreach($categoryTasks as $task): ?>
-                        <a class="category-task" href="tasks.php?action=edit&id=<?=e($task['id'])?>">
+                        <a class="category-task" href="tasks.php?action=view&id=<?=e($task['id'])?>">
                             <div class="category-task-main"><strong><?=e($task['title'])?></strong><small><?=e(statuses()[$task['status']])?> · <?=e(priorities()[$task['priority']])?></small></div>
                             <span class="due <?=due_class($task['due_date'] ?? null,$task['status'])?>"><?=!empty($task['due_date'])?e(date('d/m/Y',strtotime($task['due_date']))):'Sem prazo'?></span>
                         </a>
@@ -256,13 +285,14 @@ include __DIR__ . '/includes/header.php';
             <?php foreach($tasks as $task): ?>
                 <tr data-task-row data-priority="<?=e($task['priority'])?>" class="<?=due_class($task['due_date'] ?? null,$task['status'])==='overdue'?'row-overdue':''?>">
                     <td><input class="row-check" type="checkbox" name="ids[]" value="<?=e($task['id'])?>"></td>
-                    <td><a class="task-title" href="tasks.php?action=edit&id=<?=e($task['id'])?>"><?=e($task['title'])?></a><small><?=e(truncate_text((string)($task['description'] ?? ''), 80))?></small></td>
+                    <td><a class="task-title" href="tasks.php?action=view&id=<?=e($task['id'])?>"><?=e($task['title'])?></a><small><?=e(truncate_text((string)($task['description'] ?? ''), 80))?></small></td>
                     <td><span class="badge status-<?=e($task['status'])?>"><?=e(statuses()[$task['status']])?></span></td>
                     <td><span class="badge priority-<?=e($task['priority'])?>"><?=e(priorities()[$task['priority']])?></span></td>
                     <td><?php if (!empty($task['category'])): ?><a class="category-chip" href="tasks.php?category=<?=urlencode($task['category'])?>"><?=e($task['category'])?></a><?php else: ?><span class="muted">—</span><?php endif; ?></td>
                     <td><span class="due <?=due_class($task['due_date'] ?? null,$task['status'])?>"><?=!empty($task['due_date'])?e(date('d/m/Y',strtotime($task['due_date']))):'Sem prazo'?></span></td>
                     <td><div class="row-actions">
                         <?php if ($task['status'] !== 'done'): ?><button class="icon-action success" type="button" data-quick-done="<?=e($task['id'])?>" title="Concluir"><?=icon('check')?></button><?php endif; ?>
+                        <?php if ($task['status'] === 'done'): ?><button class="icon-action" type="submit" form="reopen-<?=e($task['id'])?>" title="Reabrir">Reabrir</button><?php endif; ?>
                         <a class="icon-action" href="tasks.php?action=edit&id=<?=e($task['id'])?>" title="Editar"><?=icon('pencil')?></a>
                         <button class="icon-action danger" type="button" data-delete-task="<?=e($task['id'])?>" data-delete-title="<?=e($task['title'])?>" title="Excluir"><?=icon('trash')?></button>
                     </div></td>
@@ -272,6 +302,34 @@ include __DIR__ . '/includes/header.php';
         </table>
     </div>
 </form>
+<?php endif; ?>
+
+<?php foreach ($tasks as $task): if ($task['status'] !== 'done') continue; ?>
+<form method="post" id="reopen-<?=e($task['id'])?>" hidden><?=csrf_field()?><input type="hidden" name="action" value="reopen"><input type="hidden" name="id" value="<?=e($task['id'])?>"></form>
+<?php endforeach; ?>
+
+<?php if ($detailTask): ?>
+<div class="modal-backdrop" data-modal-backdrop>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="taskDetailTitle">
+        <div class="modal-head"><h2 id="taskDetailTitle"><?=e($detailTask['title'])?></h2><a class="modal-close" href="tasks.php" aria-label="Fechar"><?=icon('x')?></a></div>
+        <div class="task-detail-content">
+            <p><?=nl2br(e($detailTask['description'] ?: 'Sem descrição.'))?></p>
+            <dl>
+                <dt>Status</dt><dd><?=e(statuses()[$detailTask['status']])?></dd>
+                <dt>Prioridade</dt><dd><?=e(priorities()[$detailTask['priority']])?></dd>
+                <dt>Categoria</dt><dd><?=e($detailTask['category'] ?: 'Sem categoria')?></dd>
+                <dt>Prazo</dt><dd><?=e($detailTask['due_date'] ? date('d/m/Y', strtotime($detailTask['due_date'])) : 'Sem prazo')?></dd>
+                <dt>Criada em</dt><dd><?=e(date('d/m/Y H:i', strtotime($detailTask['created_at'])))?></dd>
+                <dt>Atualizada em</dt><dd><?=e(date('d/m/Y H:i', strtotime($detailTask['updated_at'])))?></dd>
+            </dl>
+        </div>
+        <div class="modal-actions">
+            <?php if ($detailTask['status'] === 'done'): ?><form method="post"><?=csrf_field()?><input type="hidden" name="action" value="reopen"><input type="hidden" name="id" value="<?=e($detailTask['id'])?>"><button class="btn-secondary" type="submit">Reabrir</button></form><?php endif; ?>
+            <a class="btn-primary" href="tasks.php?action=edit&id=<?=e($detailTask['id'])?>">Editar</a>
+            <button class="btn-ghost" type="button" data-delete-task="<?=e($detailTask['id'])?>" data-delete-title="<?=e($detailTask['title'])?>">Excluir</button>
+        </div>
+    </section>
+</div>
 <?php endif; ?>
 
 <?php if ($modalOpen): ?>
@@ -288,7 +346,7 @@ include __DIR__ . '/includes/header.php';
             <datalist id="categorySuggestions"><?php foreach($categories as $cat): ?><option value="<?=e($cat['category'])?>"><?php endforeach; ?></datalist>
             <label>Status<select name="status"><?php foreach(statuses() as $k=>$v): ?><option value="<?=e($k)?>" <?=($editTask['status'] ?? 'inbox')===$k?'selected':''?>><?=e($v)?></option><?php endforeach; ?></select></label>
             <label>Prioridade<select name="priority"><?php foreach(priorities() as $k=>$v): ?><option value="<?=e($k)?>" <?=($editTask['priority'] ?? 'normal')===$k?'selected':''?>><?=e($v)?></option><?php endforeach; ?></select></label>
-            <label class="full">Prazo<input type="date" name="due_date" value="<?=e($editTask['due_date'] ?? '')?>"></label>
+            <label class="full">Prazo<input type="date" name="due_date" min="<?=e(($editTask['due_date'] ?? '') < date('Y-m-d') && !empty($editTask['due_date']) ? $editTask['due_date'] : date('Y-m-d'))?>" value="<?=e($editTask['due_date'] ?? '')?>"></label>
             <div class="modal-actions full"><a class="btn-ghost" href="tasks.php">Cancelar</a><button class="btn-primary" type="submit"><?=$editTask?'Salvar alterações':'Criar tarefa'?></button></div>
         </form>
     </section>

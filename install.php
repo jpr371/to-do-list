@@ -60,18 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         foreach ($statements as $sql) $pdo->exec($sql);
 
-        // Migração segura para quem já instalou a versão anterior.
-        $emailColumnCheck = $pdo->query("SHOW COLUMNS FROM users LIKE 'email'");
-        if (!$emailColumnCheck->fetch()) {
+        if (!$pdo->query("SHOW COLUMNS FROM users LIKE 'email'")->fetch()) {
             $pdo->exec("ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL AFTER username");
             $migrated = true;
         }
-        $pdo->exec("UPDATE users SET email = NULL WHERE email = ''");
-        $emailIndexCheck = $pdo->query("SHOW INDEX FROM users WHERE Key_name = 'uq_users_email'");
-        if (!$emailIndexCheck->fetch()) {
+        if (!$pdo->query("SHOW INDEX FROM users WHERE Key_name = 'uq_users_email'")->fetch()) {
             $pdo->exec("ALTER TABLE users ADD UNIQUE KEY uq_users_email (email)");
             $migrated = true;
         }
+
+        // Migração segura para quem já instalou a versão anterior.
         $columnCheck = $pdo->query("SHOW COLUMNS FROM tasks LIKE 'category'");
         if (!$columnCheck->fetch()) {
             $pdo->exec("ALTER TABLE tasks ADD COLUMN category VARCHAR(60) NULL AFTER description");
@@ -85,9 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $hash = '$2y$12$W.ND0q3g0psgNSS8LlVUZeg0O3y4mHGstoURn.8lj2cir.UOX4evK';
         $stmt = $pdo->prepare(
-            "INSERT INTO users (username, email, name, profile, password_hash)
-             VALUES ('zalen', 'zalen@example.com', 'Zalen', 'Freelancer / Criador', :hash)
-             ON DUPLICATE KEY UPDATE name = VALUES(name), profile = VALUES(profile), password_hash = VALUES(password_hash)"
+            "INSERT INTO users (username, name, profile, password_hash)
+             VALUES ('zalen', 'Zalen', 'Freelancer / Criador', :hash)
+             ON DUPLICATE KEY UPDATE username = username"
         );
         $stmt->execute(['hash' => $hash]);
         $success = true;

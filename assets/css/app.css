@@ -344,9 +344,6 @@ a{color:inherit}
 .demo-disclosure summary .icon{width:14px;height:14px;transition:transform var(--dur-base) var(--ease)}
 .demo-disclosure[open] summary .icon{transform:rotate(90deg)}
 .demo-disclosure summary:hover{color:var(--gold)}
-.auth-foot{margin-top:18px;color:var(--muted);font-size:.9rem;text-align:center}
-.auth-foot a{color:var(--gold);font-weight:800;text-decoration:none}
-.auth-foot a:hover{text-decoration:underline}
 .mobile-brand{display:none;font-weight:900;color:var(--gold);font-size:1.35rem;margin-bottom:var(--space-7)}
 
 /* ---------- animações ---------- */
@@ -407,3 +404,7 @@ a{color:inherit}
   .top-actions{gap:8px}
   .icon-btn{display:none}
 }
+:where(.task-detail-content){padding:1.25rem 1.5rem;line-height:1.6}
+.task-detail-content dl{display:grid;grid-template-columns:minmax(100px,150px) 1fr;gap:.65rem 1rem;margin-top:1.5rem}
+.task-detail-content dt{color:var(--muted,#9b9b9b)}
+.task-detail-content dd{margin:0;overflow-wrap:anywhere}
