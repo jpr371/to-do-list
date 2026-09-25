@@ -54,11 +54,11 @@ INSERT INTO users (id, username, email, name, profile, password_hash) VALUES
 (1, 'zalen', 'zalen@taskflow.local', 'Zalen', 'Freelancer / Criador', '$2y$12$W.ND0q3g0psgNSS8LlVUZeg0O3y4mHGstoURn.8lj2cir.UOX4evK');
 
 INSERT INTO tasks (user_id, title, description, category, status, priority, due_date) VALUES
-(1, 'Preparar apresentação do trimestre', 'Reunir números, montar slides e revisar antes da reunião.', 'Trabalho', 'progress', 'high', DATE_ADD(CURDATE(), INTERVAL 1 DAY)),
-(1, 'Revisar contrato do fornecedor', 'Ler cláusulas de renovação e sinalizar pontos de atenção.', 'Trabalho', 'pending', 'normal', DATE_ADD(CURDATE(), INTERVAL 3 DAY)),
+(1, 'Preparar apresentacao do trimestre', 'Reunir numeros, montar slides e revisar antes da reuniao.', 'Trabalho', 'progress', 'high', DATE_ADD(CURDATE(), INTERVAL 1 DAY)),
+(1, 'Revisar contrato do fornecedor', 'Ler clausulas de renovacao e sinalizar pontos de atencao.', 'Trabalho', 'pending', 'normal', DATE_ADD(CURDATE(), INTERVAL 3 DAY)),
 (1, 'Corrigir bug no formulário de contato', 'Campo de telefone não valida corretamente no mobile.', 'Desenvolvimento', 'review', 'urgent', CURDATE()),
 (1, 'Organizar tarefas da semana', 'Separar prioridades e prazos principais.', 'Pessoal', 'inbox', 'low', NULL),
-(1, 'Planejar entrega final', 'Conferir critérios do projeto e preparar apresentação.', 'Faculdade', 'done', 'high', DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+(1, 'Planejar entrega final', 'Conferir criterios do projeto e preparar apresentacao.', 'Faculdade', 'done', 'high', DATE_SUB(CURDATE(), INTERVAL 2 DAY));
 
 INSERT INTO task_activity (user_id, message) VALUES
 (1, 'Banco importado pelo arquivo database.sql'),
