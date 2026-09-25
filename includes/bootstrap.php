@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 date_default_timezone_set('America/Sao_Paulo');
+ini_set('default_charset', 'UTF-8');
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/icons.php';
 
@@ -207,6 +208,10 @@ function format_date_long(?string $date = null): string {
     $days = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
     $months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     return $days[(int)date('w', $ts)] . ', ' . date('j', $ts) . ' de ' . $months[(int)date('n', $ts) - 1];
+}
+
+if (!headers_sent()) {
+    header('Content-Type: text/html; charset=UTF-8');
 }
 
 function month_short(string $date): string {

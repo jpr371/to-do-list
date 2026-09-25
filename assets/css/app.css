@@ -25,9 +25,9 @@
   --sh:4px 4px 0 var(--shadow-c);
   --sh-lg:7px 7px 0 var(--shadow-c);
   --ease:cubic-bezier(.2,.8,.2,1);
-  --f-ui:'Bricolage Grotesque',system-ui,sans-serif;
-  --f-serif:'Instrument Serif',Georgia,serif;
-  --f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --f-ui:'Segoe UI',Arial,Helvetica,sans-serif;
+  --f-serif:Georgia,'Times New Roman',serif;
+  --f-mono:Consolas,'Courier New',monospace;
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
@@ -65,7 +65,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
 body{font-family:var(--f-ui);font-size:14.5px;line-height:1.45;color:var(--text);background-color:var(--bg);background-image:radial-gradient(var(--dot) 1px,transparent 1.3px);background-size:22px 22px;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color .25s}
-h1,h2,h3,h4{font-family:var(--f-ui);font-weight:800;letter-spacing:-.035em;line-height:1.05}
+h1,h2,h3,h4{font-family:var(--f-ui);font-weight:800;letter-spacing:0;line-height:1.08}
 .serif{font-family:var(--f-serif);font-style:italic;font-weight:400;letter-spacing:-.01em}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select,textarea{font-family:inherit;font-size:14.5px;color:var(--text)}
