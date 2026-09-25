@@ -1,65 +1,63 @@
-# TaskFlow LITE — MySQL
+# TaskFlow
 
-Versão enxuta do TaskFlow feita para o Projeto To Do List, usando PHP + MySQL/MariaDB no XAMPP.
+Projeto PHP + MySQL/MariaDB para rodar no XAMPP.
 
-## Funcionalidades implementadas
+## Como rodar no XAMPP
 
-Esta versão cobre as funcionalidades que já estavam marcadas como **Done** no backlog:
+1. Clone o projeto dentro de `C:\xampp\htdocs`:
 
-- criação do protótipo funcional do sistema;
-- criação de tarefas;
-- visualização de todas as tarefas;
-- visualização de tarefas atrasadas;
-- pesquisa de tarefas por título, descrição ou categoria;
-- visualização de tarefas próximas do prazo (hoje até os próximos 7 dias);
-- categorias nas tarefas;
-- filtro de tarefas por categoria;
-- visualização agrupada de tarefas por categoria.
+```bash
+cd C:\xampp\htdocs
+git clone https://github.com/jpr371/to-do-list.git todolist
+```
 
-Além disso, a versão mantém:
+2. Abra o XAMPP e inicie:
 
-- login com sessão PHP;
-- Dashboard;
-- Kanban com drag-and-drop;
-- prioridades e status;
-- edição e exclusão de tarefas;
-- ações em lote;
-- histórico de atividades;
-- banco MySQL/MariaDB.
+- Apache
+- MySQL
 
-> “Organização das tarefas no GitHub Project” e “Reutilização do Projeto To Do List” são atividades de desenvolvimento/gestão do projeto, e não telas ou funções executadas pelo sistema.
+3. Importe o banco que já está no Git:
 
-## Instalação no XAMPP
+- abra `http://localhost/phpmyadmin`
+- clique em **Importar**
+- selecione o arquivo `C:\xampp\htdocs\todolist\database.sql`
+- clique em **Executar**
 
-1. Extraia a pasta `TaskFlow_LITE` em `C:\xampp\htdocs\`.
-2. Inicie **Apache** e **MySQL** no XAMPP.
-3. Abra `http://localhost/TaskFlow_LITE/install.php`.
-4. Clique em **Criar / atualizar banco**.
-5. Acesse `http://localhost/TaskFlow_LITE/`.
+O banco criado se chama:
 
-### Login inicial
+```text
+taskflow_lite
+```
 
-- Usuário: `zalen`
-- Senha: `123456`
+4. Abra o projeto:
 
-## Atualizando a versão anterior
+```text
+http://localhost/todolist/
+```
 
-Se você já tinha instalado a primeira versão MySQL, **não precisa apagar o banco**.
+## Login inicial
 
-Substitua os arquivos do projeto pela nova versão e abra novamente:
+```text
+Usuário: zalen
+Senha: 123456
+```
 
-`http://localhost/TaskFlow_LITE/install.php`
+Também dá para criar uma conta nova em:
 
-O instalador detecta se o campo de categoria não existe e faz a migração automaticamente, preservando as tarefas antigas.
+```text
+http://localhost/todolist/register.php
+```
 
-## Banco
+## Configuração do banco
 
-Configuração padrão em `config/database.php`:
+O projeto usa a configuração padrão do XAMPP em `config/database.php`:
 
-- host: `127.0.0.1`
-- porta: `3306`
-- usuário: `root`
-- senha: vazia
-- banco: `taskflow_lite`
+```text
+host: 127.0.0.1
+porta: 3306
+usuário: root
+senha: vazia
+banco: taskflow_lite
+```
 
-O arquivo `database.sql` está incluído para instalação manual pelo phpMyAdmin em uma instalação nova.
+Se o MySQL do PC tiver senha, altere `DB_PASS` em `config/database.php`.
