@@ -72,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$dbError) {
                         <div class="pw-wrap input-ic"><?=icon('lock')?><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required <?=$dbError?'disabled':''?>><button type="button" data-show-password>Mostrar</button></div>
                     </div>
                     <button class="btn btn-primary btn-block" type="submit" <?=$dbError?'disabled':''?>>Entrar<?=icon('arrow-right','sm')?></button>
-                    <p class="auth-hint"><?=icon('user')?>Acesso inicial: <strong>zalen</strong> / <strong>123456</strong></p>
                 </form>
                 <p class="auth-foot">Ainda não tem conta? <a href="register.php">Criar conta</a></p>
             </div>
