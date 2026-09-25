@@ -1,20 +1,14 @@
-    </main>
+        </main>
+    </div>
 </div>
-<div id="toast" class="toast" role="status" aria-live="polite">
-    <span class="toast-icon"></span>
-    <span class="toast-message"></span>
-</div>
-<template id="toastIconSuccess"><?=icon('check-circle')?></template>
-<template id="toastIconError"><?=icon('alert')?></template>
-
-<div class="confirm-backdrop" data-confirm-backdrop hidden>
-    <div class="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
-        <div class="confirm-icon"><?=icon('trash')?></div>
-        <h3 id="confirmTitle">Excluir tarefa?</h3>
-        <p id="confirmMessage" data-confirm-message></p>
-        <div class="confirm-actions">
-            <button type="button" class="btn-ghost" data-confirm-cancel>Cancelar</button>
-            <button type="button" class="btn-primary confirm-danger" data-confirm-ok>Excluir</button>
+<div class="overlay center" id="overlayDelete">
+    <div class="modal-box">
+        <div class="ic-danger">!</div>
+        <h3>Excluir esta tarefa?</h3>
+        <p>Essa ação não pode ser desfeita. A tarefa será removida permanentemente.</p>
+        <div class="row">
+            <button class="btn btn-ghost" type="button" data-confirm-cancel>Cancelar</button>
+            <button class="btn btn-danger" type="button" data-confirm-ok>Excluir tarefa</button>
         </div>
     </div>
 </div>

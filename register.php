@@ -22,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->fetch()) {
                 $errors[] = 'Este e-mail já está em uso.';
             } else {
-                // A coluna username permanece para compatibilidade com as contas antigas.
                 $username = 'user_' . bin2hex(random_bytes(12));
                 $stmt = db()->prepare('INSERT INTO users (username, email, name, password_hash) VALUES (:username, :email, :name, :hash)');
                 $stmt->execute([
@@ -34,8 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect('login.php?registered=1');
             }
         } catch (PDOException $e) {
-            if ($e->getCode() === '23000') $errors[] = 'Este e-mail já está em uso.';
-            else $errors[] = 'Não foi possível criar a conta. Tente novamente.';
+            $errors[] = $e->getCode() === '23000' ? 'Este e-mail já está em uso.' : 'Não foi possível criar a conta. Tente novamente.';
         } catch (RuntimeException $e) {
             $errors[] = 'Banco indisponível. Abra o instalador antes de criar uma conta.';
         }
@@ -46,32 +44,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <title>Criar conta • TaskFlow</title>
     <link rel="stylesheet" href="assets/css/app.css">
 </head>
-<body class="login-body">
-<main class="login-shell">
-    <section class="login-brand-panel">
-        <div class="brand-mark">TF</div>
-        <h1>Organize suas tarefas no seu ritmo.</h1>
-        <p>Crie uma conta para acompanhar seus prazos e avançar em cada etapa do trabalho.</p>
-    </section>
-    <section class="login-card">
-        <h2>Criar conta</h2>
-        <p class="muted">Comece com seus dados de acesso.</p>
-        <?php foreach ($errors as $error): ?><div class="alert error"><?=e($error)?></div><?php endforeach; ?>
-        <form method="post" class="login-form">
-            <?=csrf_field()?>
-            <label>Nome<input name="name" maxlength="100" autocomplete="name" value="<?=e($name)?>" required autofocus></label>
-            <label>E-mail<input name="email" type="email" maxlength="255" autocomplete="email" value="<?=e($email)?>" required></label>
-            <label>Senha<input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
-            <label>Confirmar senha<input name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required></label>
-            <button class="btn-primary login-submit" type="submit">Criar conta</button>
-        </form>
-        <p class="muted">Já tem conta? <a href="login.php">Entrar</a></p>
-    </section>
-</main>
+<body>
+<section class="screen" id="screen-signup">
+    <div class="auth-wrap">
+        <div class="auth-side">
+            <div class="mark"><span class="dot"></span>TaskFlow</div>
+            <h1>Um lugar só para cada tarefa, prazo e prioridade.</h1>
+            <p class="quote">© 2026 TaskFlow.</p>
+        </div>
+        <div class="auth-form-col">
+            <div class="auth-box">
+                <h2>Criar conta</h2>
+                <p class="sub">Leva menos de um minuto.</p>
+                <?php foreach ($errors as $error): ?><div class="auth-banner"><?=e($error)?></div><?php endforeach; ?>
+                <form method="post" autocomplete="on">
+                    <?=csrf_field()?>
+                    <div class="field"><label>Nome completo</label><input name="name" maxlength="100" autocomplete="name" value="<?=e($name)?>" placeholder="Seu nome" required autofocus></div>
+                    <div class="field"><label>E-mail</label><input name="email" type="email" maxlength="255" autocomplete="email" value="<?=e($email)?>" placeholder="voce@empresa.com" required></div>
+                    <div class="field"><label>Senha</label><div class="pw-wrap"><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required><button type="button" data-show-password>Mostrar</button></div><div class="strength"><span></span><span></span><span></span></div></div>
+                    <div class="field"><label>Confirmar senha</label><input name="password_confirmation" type="password" minlength="8" autocomplete="new-password" placeholder="Repita a senha" required></div>
+                    <button class="btn btn-primary" style="width:100%;justify-content:center" type="submit">Criar conta</button>
+                </form>
+                <p class="auth-foot">Já tem conta? <a href="login.php">Entrar</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+<script src="assets/js/app.js"></script>
 </body>
 </html>
