@@ -1,0 +1,59 @@
+<%- include('partials/app-start', { pageTitle, activePage }) %>
+<% const pendingCount = Number(counts.pending_count || 0); const progressCount = Number(counts.progress_count || 0); const doneCount = Number(counts.done_count || 0); const lateCount = Number(counts.late_count || 0); const todayCount = Number(counts.today_count || 0); const totalCount = pendingCount + progressCount + doneCount; const donePct = totalCount ? Math.round(doneCount / totalCount * 100) : 0; const firstName = String(user?.name || '').split(/\s+/)[0] || ''; %>
+<section class="hero">
+  <div>
+    <div class="kicker"><%- icon('sun') %>Resumo do dia</div>
+    <h2>Olá<% if (firstName) { %>, <em><%= firstName %></em><% } %>.</h2>
+    <p>
+      <% if (lateCount > 0) { %>Você tem <b><%= lateCount %> tarefa<%= lateCount === 1 ? '' : 's' %> atrasada<%= lateCount === 1 ? '' : 's' %></b><% if (todayCount > 0) { %> e <b><%= todayCount %> para hoje</b><% } %>. Que tal começar por elas?
+      <% } else if (todayCount > 0) { %>Hoje você tem <b><%= todayCount %> tarefa<%= todayCount === 1 ? '' : 's' %></b> com prazo. Bom trabalho!
+      <% } else if (totalCount === 0) { %>Seu espaço está pronto. Crie sua primeira tarefa e comece a organizar o dia.
+      <% } else { %>Tudo em dia por aqui. <b><%= pendingCount + progressCount %> tarefa<%= pendingCount + progressCount === 1 ? '' : 's' %></b> em aberto no momento.<% } %>
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-sm" href="/tasks?action=new"><%- icon('plus','sm') %>Nova tarefa</a>
+      <a class="btn btn-ghost btn-sm" href="/kanban"><%- icon('kanban','sm') %>Abrir Kanban</a>
+    </div>
+  </div>
+  <div class="stamp" style="--p:<%= donePct %>" title="<%= doneCount %> de <%= totalCount %> concluídas"><div class="stamp-v"><b><%= donePct %>%</b><span>feito</span></div></div>
+</section>
+
+<div class="stat-grid">
+  <a class="stat pending" href="/tasks?status=pending"><div class="st-top"><span class="st-ic"><%- icon('inbox') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= pendingCount %></div><div class="l">Pendentes</div></div></a>
+  <a class="stat progress" href="/tasks?status=progress"><div class="st-top"><span class="st-ic"><%- icon('activity') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= progressCount %></div><div class="l">Em andamento</div></div></a>
+  <a class="stat done" href="/tasks?status=done"><div class="st-top"><span class="st-ic"><%- icon('check-circle') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= doneCount %></div><div class="l">Concluídas</div></div></a>
+  <a class="stat late <%= lateCount > 0 ? 'has' : '' %>" href="/tasks?due=overdue"><div class="st-top"><span class="st-ic"><%- icon('alert') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= lateCount %></div><div class="l">Atrasadas</div></div></a>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head"><h3><span class="h-ic"><%- icon('target') %></span>Próximas ações</h3><a class="panel-link" href="/tasks">Ver todas<%- icon('arrow-right') %></a></div>
+    <% if (!next.length) { %><div class="panel-empty"><%- icon('check-circle') %>Nenhuma tarefa pendente. Crie uma nova tarefa para começar.</div><% } %>
+    <% next.forEach(task => { const dc = dueClass(task.due_date, task.status); %>
+      <a class="mini-task" href="/tasks?action=view&id=<%= task.id %>">
+        <span class="pri-badge <%= task.priority %>"><%- icon(priorityIcon(task.priority)) %></span>
+        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %></div></div>
+        <% if (task.due_date) { %><span class="when <%= dc === 'overdue' ? 'late' : (dc === 'today' ? 'today' : '') %>"><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>
+      </a>
+    <% }) %>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h3><span class="h-ic sky"><%- icon('calendar') %></span>Próximos prazos</h3><a class="panel-link" href="/tasks?due=upcoming">7 dias<%- icon('arrow-right') %></a></div>
+    <% if (!upcoming.length) { %><div class="panel-empty"><%- icon('calendar') %>Sem prazos nos próximos 7 dias.</div><% } %>
+    <% upcoming.forEach(task => { %>
+      <a class="mini-task" href="/tasks?action=view&id=<%= task.id %>">
+        <span class="date-chip"><span><%= monthShort(task.due_date) %></span><b><%= formatDate(task.due_date).slice(0,2) %></b></span>
+        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %></div></div>
+      </a>
+    <% }) %>
+  </section>
+</div>
+
+<section class="panel" style="margin-top:18px">
+  <div class="panel-head"><h3><span class="h-ic lilac"><%- icon('clock') %></span>Atividade recente</h3></div>
+  <% if (!activities.length) { %><div class="panel-empty"><%- icon('activity') %>Nenhuma atividade recente.</div><% } %>
+  <div class="timeline">
+    <% activities.forEach(activity => { %><div class="act-item"><div class="dot2"><%- icon('check') %></div><div><b><%= activity.message %></b><span class="ago"><%= relativeTime(activity.created_at) %></span></div></div><% }) %>
+  </div>
+</section>
+<%- include('partials/app-end') %>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <%- include('head', { pageTitle, headTitle: `${pageTitle} - TaskFlow` }) %>
+</head>
+<body>
+<div id="toastwrap"></div>
+<div class="app show" data-csrf="">
+  <aside class="sidebar" id="sidebar">
+    <a class="mark" href="/dashboard"><%- brandMark() %>TaskFlow</a>
+    <div class="nav-label">Caderno</div>
+    <a class="nav-item <%= activePage === 'dashboard' ? 'active' : '' %>" href="/dashboard"><%- icon('home') %>Painel</a>
+    <a class="nav-item <%= activePage === 'tasks' ? 'active' : '' %>" href="/tasks"><%- icon('list') %>Todas as tarefas</a>
+    <a class="nav-item <%= activePage === 'kanban' ? 'active' : '' %>" href="/kanban"><%- icon('kanban') %>Kanban</a>
+    <a class="nav-item <%= activePage === 'categories' ? 'active' : '' %>" href="/tasks?view=category"><%- icon('tag') %>Categorias</a>
+    <div class="cta"><a class="btn btn-primary btn-block" href="/tasks?action=new"><%- icon('plus','sm') %>Nova tarefa</a></div>
+    <div class="sidebar-note"><b>Uma coisa de cada vez.</b>Arraste cartões no Kanban para avançar tarefas.</div>
+    <div class="sidebar-foot">
+      <div class="user-menu hidden" id="userMenu">
+        <a href="/dashboard"><%- icon('user') %>Meu perfil</a>
+        <a href="/tasks"><%- icon('settings') %>Preferências</a>
+        <hr>
+        <a class="danger" href="/logout"><%- icon('logout') %>Sair da conta</a>
+      </div>
+      <button class="user-row" type="button" data-profile-toggle aria-haspopup="menu">
+        <% const parts = String(user?.name || 'User').trim().split(/\s+/); const initials = ((parts[0]?.[0] || 'U') + (parts[1]?.[0] || '')).toUpperCase(); %>
+        <div class="avatar"><%= initials %></div>
+        <div><div class="user-name"><%= user?.name || '' %></div><div class="user-mail"><%= user?.email || user?.username || '' %></div></div>
+        <%- icon('chevrons','sm chev-ud') %>
+      </button>
+    </div>
+  </aside>
+  <div class="sidebar-scrim" data-menu-close></div>
+  <div class="main">
+    <header class="topbar">
+      <div class="tb-title">
+        <button class="menubtn" type="button" data-menu-toggle aria-label="Abrir menu"><%- icon('menu') %></button>
+        <div>
+          <div class="crumb"><%- icon('calendar') %><%= formatDateLong() %></div>
+          <h1><%= pageTitle %></h1>
+        </div>
+      </div>
+      <div class="actions">
+        <%- themeToggle() %>
+        <% if (['tasks','kanban','categories'].includes(activePage)) { %><a class="btn btn-primary" href="/tasks?action=new"><%- icon('plus','sm') %><span class="lbl">Nova tarefa</span></a><% } %>
+      </div>
+    </header>
+    <main class="content">
+      <% if (flash?.success) { %><div class="auth-banner success-banner" data-autohide><%- icon('check-circle','sm') %><%= flash.success %></div><% } %>
+      <% if (flash?.error) { %><div class="auth-banner"><%- icon('alert','sm') %><%= flash.error %></div><% } %>

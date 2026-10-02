@@ -1,0 +1,21 @@
+<%- include('partials/app-start', { pageTitle, activePage }) %>
+<div class="kanban" data-kanban data-csrf="">
+  <% Object.entries(statuses).forEach(([status, label]) => { %>
+    <section class="kcol" data-status="<%= status %>" data-label="<%= label %>">
+      <h4><%- icon(statusIcon(status)) %><%= label %><span><%= groups[status]?.length || 0 %></span></h4>
+      <div class="kcol-empty"><%- icon('inbox') %>Arraste tarefas para cá</div>
+      <% (groups[status] || []).forEach(task => { const dc = dueClass(task.due_date, task.status); %>
+        <article class="kcard" draggable="true" data-id="<%= task.id %>" onclick="location.href='/tasks?action=view&id=<%= task.id %>'">
+          <div class="k-top"><%- priorityPill(task.priority) %><%- icon('grip','k-grip') %></div>
+          <div class="tt"><%= task.title %></div>
+          <% if (task.description) { %><p class="desc"><%= truncate(task.description, 85) %></p><% } %>
+          <div class="meta">
+            <span><%- icon('tag') %><%= task.category || 'Sem categoria' %></span>
+            <% if (task.due_date) { %><span class="k-due <%= dc === 'overdue' ? 'due-late' : (dc === 'today' ? 'due-today' : '') %>"><%- icon('calendar') %><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>
+          </div>
+        </article>
+      <% }) %>
+    </section>
+  <% }) %>
+</div>
+<%- include('partials/app-end') %>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><%- include('../partials/head', { headTitle: 'Criar conta - TaskFlow' }) %></head>
+<body>
+<div class="theme-float"><%- themeToggle() %></div>
+<section class="screen" id="screen-signup">
+  <div class="auth-wrap">
+    <div class="auth-side">
+      <div class="mark"><%- brandMark() %>TaskFlow</div>
+      <div>
+        <h1>Um caderno só para cada <em>tarefa, prazo e prioridade.</em></h1>
+        <div class="auth-preview" aria-hidden="true">
+          <div class="ap-row"><span class="ap-chk on"><%- icon('check') %></span><span class="t">Crie tarefas em segundos</span><span class="ap-tag"><%- icon('plus','xs') %>Nova</span></div>
+          <div class="ap-row"><span class="ap-chk on"><%- icon('check') %></span><span class="t">Arraste no Kanban para avançar</span><span class="ap-tag"><%- icon('kanban','xs') %>Quadro</span></div>
+          <div class="ap-row"><span class="ap-chk on"><%- icon('check') %></span><span class="t">Nunca mais perca um prazo</span><span class="ap-tag ok"><%- icon('calendar','xs') %>Em dia</span></div>
+        </div>
+      </div>
+      <p class="foot">© 2026 TaskFlow</p>
+    </div>
+    <div class="auth-form-col">
+      <div class="auth-box">
+        <a class="mark mark-mobile" href="/login"><%- brandMark() %>TaskFlow</a>
+        <div class="eyebrow">Criar conta</div>
+        <h2>Abra seu <em>caderno.</em></h2>
+        <p class="sub">Leva menos de um minuto.</p>
+        <% errors.forEach(error => { %><div class="auth-banner"><%- icon('alert','sm') %><%= error %></div><% }) %>
+        <form class="auth-card" method="post" autocomplete="on">
+          <div class="field"><label for="r-name"><%- icon('user') %>Nome completo</label><div class="input-ic"><%- icon('user') %><input id="r-name" name="name" maxlength="100" autocomplete="name" value="<%= old.name || '' %>" placeholder="Seu nome" required autofocus></div></div>
+          <div class="field"><label for="r-email"><%- icon('mail') %>E-mail</label><div class="input-ic"><%- icon('mail') %><input id="r-email" name="email" type="email" maxlength="255" autocomplete="email" value="<%= old.email || '' %>" placeholder="voce@empresa.com" required></div></div>
+          <div class="field"><label for="password"><%- icon('lock') %>Senha</label><div class="pw-wrap input-ic"><%- icon('lock') %><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required><button type="button" data-show-password>Mostrar</button></div><div class="strength" data-strength><span></span><span></span><span></span></div></div>
+          <div class="field"><label for="r-confirm"><%- icon('lock') %>Confirmar senha</label><div class="input-ic"><%- icon('check-circle') %><input id="r-confirm" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" placeholder="Repita a senha" required></div></div>
+          <button class="btn btn-primary btn-block" type="submit">Criar conta<%- icon('arrow-right','sm') %></button>
+        </form>
+        <p class="auth-foot">Já tem conta? <a href="/login">Entrar</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+<script src="/js/app.js"></script>
+</body>
+</html>

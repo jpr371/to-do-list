@@ -126,7 +126,7 @@
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       try {
-        const response = await fetch('api/task-status.php', {
+        const response = await fetch('/api/task-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ csrf, id: btn.dataset.quickDone || '', status: 'done' })
@@ -167,7 +167,7 @@
         anchor ? anchor.after(card) : col.appendChild(card);
         refreshCounts();
         try {
-          const response = await fetch('api/task-status.php', {
+          const response = await fetch('/api/task-status', {
             method: 'POST',
             headers: {'Content-Type':'application/x-www-form-urlencoded'},
             body: new URLSearchParams({ csrf, id: card.dataset.id || '', status: col.dataset.status || '' })

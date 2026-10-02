@@ -1,26 +1,32 @@
 # TaskFlow
 
-Projeto PHP + MySQL/MariaDB para rodar no XAMPP.
+Projeto ToDoList em Node.js MVC usando MySQL/MariaDB do XAMPP.
 
-## Como rodar no XAMPP
+## Tecnologias
+
+- Node.js
+- Express
+- EJS
+- MySQL/MariaDB
+- CSS e JavaScript proprios
+
+## Como rodar
 
 1. Clone o projeto dentro de `C:\xampp\htdocs`:
 
 ```bash
 cd C:\xampp\htdocs
 git clone https://github.com/jpr371/to-do-list.git todolist
+cd todolist
 ```
 
-2. Abra o XAMPP e inicie:
+2. Inicie o MySQL pelo XAMPP.
 
-- Apache
-- MySQL
-
-3. Importe o banco que já está no Git:
+3. Importe o banco que ja esta no Git:
 
 - abra `http://localhost/phpmyadmin`
 - clique em **Importar**
-- selecione o arquivo `C:\xampp\htdocs\todolist\database.sql`
+- selecione `C:\xampp\htdocs\todolist\database.sql`
 - clique em **Executar**
 
 O banco criado se chama:
@@ -29,35 +35,43 @@ O banco criado se chama:
 taskflow_lite
 ```
 
-4. Abra o projeto:
+4. Instale e rode o projeto:
+
+```bash
+npm install
+copy .env.example .env
+npm start
+```
+
+5. Abra:
 
 ```text
-http://localhost/todolist/
+http://localhost:3000
 ```
 
 ## Login inicial
 
 ```text
-Usuário: zalen
+Usuario: zalen
 Senha: 123456
 ```
 
-Também dá para criar uma conta nova em:
+Tambem da para criar uma conta nova em:
 
 ```text
-http://localhost/todolist/register.php
+http://localhost:3000/register
 ```
 
-## Configuração do banco
+## Configuracao do banco
 
-O projeto usa a configuração padrão do XAMPP em `config/database.php`:
+Por padrao o projeto usa:
 
 ```text
 host: 127.0.0.1
 porta: 3306
-usuário: root
+usuario: root
 senha: vazia
 banco: taskflow_lite
 ```
 
-Se o MySQL do PC tiver senha, altere `DB_PASS` em `config/database.php`.
+Se o MySQL tiver senha, altere `DB_PASS` no arquivo `.env`.
