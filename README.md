@@ -1,105 +1,134 @@
 # TaskFlow
 
-Projeto ToDoList em Node.js MVC usando MySQL/MariaDB do XAMPP.
+TaskFlow e um ToDoList em Node.js MVC com Express, EJS e MySQL/MariaDB. A aplicacao tem cadastro em etapas, perfil de usuario, preferencias, upload de avatar e separacao de tarefas por Workspace pessoal ou de equipe.
 
 ## Tecnologias
 
-- Node.js
-- Express
+- Node.js com ES Modules
+- Express 5
 - EJS
 - MySQL/MariaDB
 - CSS e JavaScript proprios
+- Multer para upload de imagens em memoria
 
-## Como rodar
-
-1. Clone o projeto dentro de `C:\xampp\htdocs`:
-
-```bash
-cd C:\xampp\htdocs
-git clone https://github.com/jpr371/to-do-list.git todolist
-cd todolist
-```
-
-2. Inicie o MySQL pelo XAMPP.
-
-3. Importe o banco que ja esta no Git:
-
-- abra `http://localhost/phpmyadmin`
-- clique em **Importar**
-- selecione `C:\xampp\htdocs\todolist\database.sql`
-- clique em **Executar**
-
-O banco criado se chama:
-
-```text
-taskflow_lite
-```
-
-4. Instale e rode o projeto:
+## Instalacao
 
 ```bash
+git clone https://github.com/jpr371/to-do-list.git
+cd to-do-list
 npm install
 copy .env.example .env
-npm start
 ```
 
-5. Abra:
+No Linux/macOS, use `cp .env.example .env`.
+
+## Banco de dados
+
+O projeto usa MySQL/MariaDB. Por padrao, a conexao espera:
 
 ```text
-http://localhost:3000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=taskflow_lite
+DB_USER=root
+DB_PASS=
 ```
 
-## Atualizacoes do banco (migracoes)
+Para ambiente local novo, importe `database.sql` pelo phpMyAdmin ou pelo cliente MySQL. Esse arquivo recria o banco `taskflow_lite` do zero, entao nao use em um banco que ja contenha dados importantes.
 
-Ao rodar `npm start`, o servidor aplica automaticamente as migracoes pendentes
-(`config/migrations.js`). Elas sao incrementais e nao apagam nada: contas, tarefas
-e categorias existentes sao mantidas. Cada migracao roda uma unica vez e fica
-registrada na tabela `schema_migrations`.
-
-Para aplicar manualmente, sem subir o servidor:
+Depois da importacao inicial, use as migracoes incrementais:
 
 ```bash
 npm run migrate
 ```
 
-Se o banco ja estiver importado, **nao e preciso importar o `database.sql` de novo**
-(ele recria o banco do zero).
+As migracoes ficam em `config/migrations.js`, registram execucoes em `schema_migrations` e preservam contas e tarefas existentes. O servidor tambem executa migracoes pendentes automaticamente ao iniciar.
 
-## Cadastro, perfil e equipes
+## Executar
 
-- **Cadastro em etapas** (`/register`): escolha entre *Uso pessoal* e *Equipe ou empresa*,
-  dados da conta, personalizacao (opcional) ou dados da equipe, e confirmacao.
-- **Meu perfil** (`/profile`, pelo menu do usuario): nome, e-mail, ocupacao, biografia,
-  foto de perfil (JPG, PNG ou WEBP ate 2 MB), preferencias, notificacoes e troca de senha.
-- **Equipe** (`/workspaces/:id`): dados, imagem e informacoes da equipe. Somente
-  proprietario ou administrador pode editar.
-- Toda conta tem um ambiente **Pessoal**. Quem cria uma equipe alterna entre os ambientes
-  pelo seletor na barra lateral, com a mesma conta. As tarefas ficam separadas por ambiente.
-- As imagens enviadas ficam em `uploads/` (fora do Git).
+```bash
+npm start
+```
 
-## Login inicial
+Abra:
+
+```text
+http://localhost:3000
+```
+
+Durante o desenvolvimento:
+
+```bash
+npm run dev
+```
+
+## Login de demonstracao
 
 ```text
 Usuario: zalen
 Senha: 123456
 ```
 
-Tambem da para criar uma conta nova em:
+Tambem e possivel criar uma conta nova em `/register`.
 
-```text
-http://localhost:3000/register
-```
+## Arquitetura
 
-## Configuracao do banco
+- `server.js`: configura Express, EJS, locals globais, conexao e migracoes.
+- `routes/index.js`: define rotas de autenticacao, perfil, Workspaces, tarefas e Kanban.
+- `controllers/`: recebe requisicoes, valida dados e escolhe views/redirecionamentos.
+- `models/`: concentra consultas SQL e regras de isolamento por usuario/Workspace.
+- `middlewares/`: sessao, assets, uploads estaticos e carregamento do usuario autenticado.
+- `views/`: telas EJS e partials compartilhados.
+- `assets/`: CSS e JavaScript do frontend.
+- `uploads/`: imagens enviadas por usuarios, ignoradas pelo Git.
 
-Por padrao o projeto usa:
+## Funcionalidades existentes
 
-```text
-host: 127.0.0.1
-porta: 3306
-usuario: root
-senha: vazia
-banco: taskflow_lite
-```
+- Cadastro em quatro etapas com escolha entre uso pessoal e equipe/empresa.
+- Criacao automatica de Workspace pessoal para toda conta.
+- Criacao de Workspace de equipe para contas profissionais.
+- Login automatico apos cadastro.
+- Perfil com nome, e-mail, ocupacao, biografia, avatar, preferencias, notificacoes e senha.
+- Seletor de Workspace na barra lateral quando o usuario tem mais de um ambiente.
+- Tarefas isoladas por Workspace ativo.
+- Migracao de contas antigas para Workspace pessoal sem apagar tarefas.
+- Edicao de dados e imagem da equipe por proprietario ou administrador.
 
-Se o MySQL tiver senha, altere `DB_PASS` no arquivo `.env`.
+## Roteiro de teste manual
+
+1. Cadastro pessoal:
+   - Acesse `/register`.
+   - Escolha `Uso pessoal`.
+   - Preencha nome, e-mail e senha.
+   - Escolha preferencias opcionais.
+   - Confirme e verifique se o painel abre logado.
+
+2. Cadastro profissional:
+   - Acesse `/register` sem estar logado.
+   - Escolha `Equipe ou empresa`.
+   - Preencha dados do responsavel e da equipe.
+   - Confirme e verifique se aparecem os Workspaces `Pessoal` e da equipe.
+
+3. Perfil:
+   - Acesse `Meu perfil`.
+   - Edite nome, ocupacao e biografia.
+   - Para alterar e-mail, informe a senha atual.
+   - Teste upload e remocao de avatar com JPG, PNG ou WEBP de ate 2 MB.
+   - Altere preferencias e confirme o menu lateral.
+
+4. Workspaces:
+   - Crie uma tarefa no Workspace pessoal.
+   - Troque para a equipe e confirme que a tarefa pessoal nao aparece.
+   - Crie uma tarefa na equipe e volte ao pessoal para confirmar o isolamento.
+   - Faca logout e login novamente para confirmar que o ultimo Workspace selecionado foi mantido.
+
+5. Permissoes:
+   - A pagina `/profile` sempre usa o usuario da sessao; nao ha id de usuario no formulario.
+   - A pagina `/workspaces/:id` so abre para membros.
+   - A edicao de equipe exige papel `owner` ou `admin` no backend.
+
+## Observacoes de seguranca
+
+- Nao versione `.env`, `uploads/`, `node_modules/`, logs ou dumps com dados reais.
+- Uploads sao validados pela assinatura do arquivo, nao apenas pela extensao.
+- As migracoes sao nao destrutivas; evite executar `database.sql` sobre bancos com dados reais.

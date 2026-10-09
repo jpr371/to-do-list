@@ -50,12 +50,15 @@ export async function requireAuth(req, res, next) {
     await WorkspaceModel.ensurePersonal(user.id);
     workspaces = await WorkspaceModel.listForUser(user.id);
   }
-  const active = workspaces.find(w => w.id === req.session.workspaceId) || workspaces.find(w => w.kind === 'personal');
+  const preferences = await UserModel.preferences(user.id);
+  const active = workspaces.find(w => w.id === req.session.workspaceId)
+    || workspaces.find(w => w.id === preferences.activeWorkspaceId)
+    || workspaces.find(w => w.kind === 'personal')
+    || workspaces[0];
   req.session.workspaceId = active.id;
   req.session.user = { id: user.id, username: user.username, email: user.email, name: user.name };
   req.scope = { userId: user.id, workspaceId: active.id, personal: active.kind === 'personal' };
 
-  const preferences = await UserModel.preferences(user.id);
   const overdue = preferences.notifyOverdue ? await TaskModel.dashboardCounts(req.scope) : null;
 
   req.user = user;

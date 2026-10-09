@@ -1,4 +1,5 @@
 import WorkspaceModel from '../models/WorkspaceModel.js';
+import UserModel from '../models/UserModel.js';
 import { clearFlash, flash, teamPurposes, teamSizes, teamTypes } from '../utils/viewHelpers.js';
 import { removeImage, saveImage, validateImage } from '../utils/uploads.js';
 
@@ -35,7 +36,10 @@ function render(req, res, workspace, { errors = {}, old = null, status = 200 } =
 export default class WorkspaceController {
   static async switch(req, res) {
     const workspace = await WorkspaceModel.findForMember(Number(req.body.workspace_id) || 0, req.user.id);
-    if (workspace) req.session.workspaceId = workspace.id;
+    if (workspace) {
+      req.session.workspaceId = workspace.id;
+      await UserModel.setActiveWorkspace(req.user.id, workspace.id);
+    }
     res.redirect('/dashboard');
   }
 

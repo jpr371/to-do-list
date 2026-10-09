@@ -28,6 +28,14 @@ async function constraintExists(conn, table, name) {
   return rows.length > 0;
 }
 
+async function indexExists(conn, table, name) {
+  const [rows] = await conn.query(
+    'SELECT 1 FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ? LIMIT 1',
+    [table, name]
+  );
+  return rows.length > 0;
+}
+
 async function addColumn(conn, table, column, definition) {
   if (!(await columnExists(conn, table, column))) {
     await conn.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
@@ -85,7 +93,10 @@ const migrations = [
 
       await addColumn(conn, 'tasks', 'workspace_id', 'INT UNSIGNED NULL AFTER user_id');
       if (!(await constraintExists(conn, 'tasks', 'fk_tasks_workspace'))) {
-        await conn.query('ALTER TABLE tasks ADD KEY idx_tasks_workspace (workspace_id), ADD CONSTRAINT fk_tasks_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL');
+        if (!(await indexExists(conn, 'tasks', 'idx_tasks_workspace'))) {
+          await conn.query('ALTER TABLE tasks ADD KEY idx_tasks_workspace (workspace_id)');
+        }
+        await conn.query('ALTER TABLE tasks ADD CONSTRAINT fk_tasks_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL');
       }
 
       // Contas existentes: preferências padrão e ambiente pessoal com as tarefas atuais.
@@ -99,6 +110,25 @@ const migrations = [
         JOIN workspaces w ON w.owner_id = t.user_id AND w.kind = 'personal'
         SET t.workspace_id = w.id
         WHERE t.workspace_id IS NULL`);
+    }
+  },
+  {
+    id: '2026_10_09_002_active_workspace_preference',
+    async up(conn) {
+      await addColumn(conn, 'user_preferences', 'active_workspace_id', 'INT UNSIGNED NULL AFTER features');
+
+      if (!(await indexExists(conn, 'user_preferences', 'idx_preferences_active_workspace'))) {
+        await conn.query('ALTER TABLE user_preferences ADD KEY idx_preferences_active_workspace (active_workspace_id)');
+      }
+      if (!(await constraintExists(conn, 'user_preferences', 'fk_preferences_active_workspace'))) {
+        await conn.query('ALTER TABLE user_preferences ADD CONSTRAINT fk_preferences_active_workspace FOREIGN KEY (active_workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL');
+      }
+
+      await conn.query(`UPDATE user_preferences p
+        JOIN workspaces w ON w.owner_id = p.user_id AND w.kind = 'personal'
+        JOIN workspace_members m ON m.workspace_id = w.id AND m.user_id = p.user_id
+        SET p.active_workspace_id = w.id
+        WHERE p.active_workspace_id IS NULL`);
     }
   }
 ];

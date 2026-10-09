@@ -19,7 +19,10 @@ export default class WorkspaceModel {
   // Garante o ambiente pessoal de contas criadas antes dos Workspaces.
   static async ensurePersonal(userId) {
     const rows = await query("SELECT id FROM workspaces WHERE owner_id = ? AND kind = 'personal' LIMIT 1", [userId]);
-    if (rows[0]) return rows[0].id;
+    if (rows[0]) {
+      await query("INSERT IGNORE INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, 'owner')", [rows[0].id, userId]);
+      return rows[0].id;
+    }
     const result = await query("INSERT INTO workspaces (kind, name, owner_id) VALUES ('personal', 'Pessoal', ?)", [userId]);
     await query("INSERT IGNORE INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, 'owner')", [result.insertId, userId]);
     return result.insertId;

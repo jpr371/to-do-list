@@ -51,11 +51,12 @@ export default class UserModel {
   }
 
   static async preferences(id) {
-    const rows = await query('SELECT main_use, features, notify_overdue, notify_due_today FROM user_preferences WHERE user_id = ? LIMIT 1', [id]);
-    const row = rows[0] || { main_use: null, features: 'kanban,categories,deadlines', notify_overdue: 1, notify_due_today: 1 };
+    const rows = await query('SELECT main_use, features, active_workspace_id, notify_overdue, notify_due_today FROM user_preferences WHERE user_id = ? LIMIT 1', [id]);
+    const row = rows[0] || { main_use: null, features: 'kanban,categories,deadlines', active_workspace_id: null, notify_overdue: 1, notify_due_today: 1 };
     return {
       mainUse: row.main_use || '',
       features: String(row.features || '').split(',').filter(Boolean),
+      activeWorkspaceId: row.active_workspace_id ? Number(row.active_workspace_id) : null,
       notifyOverdue: Boolean(row.notify_overdue),
       notifyDueToday: Boolean(row.notify_due_today)
     };
@@ -67,6 +68,15 @@ export default class UserModel {
       `INSERT INTO user_preferences (user_id, main_use, features, notify_overdue, notify_due_today) VALUES (?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE main_use = VALUES(main_use), features = VALUES(features), notify_overdue = VALUES(notify_overdue), notify_due_today = VALUES(notify_due_today)`,
       [id, mainUse || null, features.join(','), notifyOverdue ? 1 : 0, notifyDueToday ? 1 : 0]
+    );
+  }
+
+  static async setActiveWorkspace(id, workspaceId, conn = null) {
+    const run = conn ? (sql, params) => conn.execute(sql, params) : query;
+    await run(
+      `INSERT INTO user_preferences (user_id, active_workspace_id) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE active_workspace_id = VALUES(active_workspace_id)`,
+      [id, workspaceId || null]
     );
   }
 }

@@ -101,12 +101,13 @@ export default class AuthController {
         old: { identifier }
       });
     }
-    // Contas de equipe entram direto no Workspace da equipe.
-    let workspaceId = null;
-    if (match.account_type === 'team') {
-      const workspaces = await WorkspaceModel.listForUser(match.id);
-      workspaceId = workspaces.find(w => w.kind === 'team')?.id || null;
-    }
+    const [workspaces, preferences] = await Promise.all([
+      WorkspaceModel.listForUser(match.id),
+      UserModel.preferences(match.id)
+    ]);
+    const workspaceId = workspaces.some(w => w.id === preferences.activeWorkspaceId)
+      ? preferences.activeWorkspaceId
+      : (workspaces.find(w => match.account_type === 'team' && w.kind === 'team') || workspaces.find(w => w.kind === 'personal'))?.id;
     try {
       await startSession(req, { id: match.id, username: match.username, email: match.email, name: match.name }, workspaceId);
     } catch {
@@ -179,6 +180,7 @@ export default class AuthController {
           description: data.teamDescription
         });
       }
+      await UserModel.setActiveWorkspace(userId, activeWorkspaceId, conn);
       await conn.commit();
     } catch (err) {
       await conn.rollback();
