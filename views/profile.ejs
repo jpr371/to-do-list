@@ -43,6 +43,15 @@
         <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Alterando..."><%- icon('lock','sm') %>Alterar senha</button></div>
       </form>
     </section>
+
+    <section class="panel" id="excluir-conta">
+      <div class="panel-head"><h3><span class="h-ic"><%- icon('trash') %></span>Excluir conta</h3></div>
+      <div class="panel-form">
+        <p class="field-hint">Apaga definitivamente sua conta, tarefas, atividades, Workspaces e fotos. Esta ação não pode ser desfeita.</p>
+        <%- fieldError('delete_account') %>
+        <div class="form-actions"><button class="btn btn-danger" type="button" data-delete-account><%- icon('trash','sm') %>Excluir minha conta</button></div>
+      </div>
+    </section>
   </div>
 
   <div class="profile-col">
@@ -84,6 +93,17 @@
         <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Salvando..."><%- icon('check','sm') %>Salvar preferências</button></div>
       </form>
     </section>
+  </div>
+</div>
+<div class="overlay center<%= errors.delete_password ? ' show' : '' %>" id="overlayDeleteAccount">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
+    <div class="ic-danger"><%- icon('trash') %></div>
+    <h3 id="deleteAccountTitle">Excluir conta?</h3>
+    <p>Todos os seus dados serão apagados permanentemente. Informe sua senha atual para confirmar.</p>
+    <form method="post" action="/profile/delete" class="panel-form" novalidate>
+      <div class="field <%= hasErr('delete_password') %>"><label for="p-delete-password"><%- icon('lock') %>Senha atual</label><div class="pw-wrap"><input id="p-delete-password" name="current_password" type="password" autocomplete="current-password" required <%- invalid('delete_password') %>><button type="button" data-show-password>Mostrar</button></div><%- fieldError('delete_password') %></div>
+      <div class="row"><button class="btn btn-ghost" type="button" data-delete-account-cancel>Cancelar</button><button class="btn btn-danger" type="submit" data-loading-text="Excluindo..."><%- icon('trash','sm') %>Excluir conta</button></div>
+    </form>
   </div>
 </div>
 <%- include('partials/app-end') %>

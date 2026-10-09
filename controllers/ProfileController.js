@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import UserModel from '../models/UserModel.js';
 import ActivityModel from '../models/ActivityModel.js';
+import WorkspaceModel from '../models/WorkspaceModel.js';
 import { clearFlash, flash, featureOptions, mainUses } from '../utils/viewHelpers.js';
 import { removeImage, saveImage, validateImage } from '../utils/uploads.js';
 
@@ -115,5 +116,30 @@ export default class ProfileController {
     await ActivityModel.create(user.id, 'Senha alterada');
     flash(req, 'success', 'Senha alterada.');
     res.redirect('/profile#seguranca');
+  }
+
+  static async deleteAccount(req, res) {
+    const user = req.user;
+    const errors = {};
+
+    if (!(await passwordMatches(user.id, String(req.body.current_password || '')))) {
+      errors.delete_password = 'Senha atual incorreta.';
+    } else {
+      const shared = await WorkspaceModel.ownedWithOtherMembers(user.id);
+      if (shared.length) {
+        errors.delete_account = `Transfira ou remova os integrantes de ${shared.map(w => w.name).join(', ')} antes de excluir a conta.`;
+      }
+    }
+    if (Object.keys(errors).length) return render(req, res, { status: 422, errors });
+
+    const files = [user.avatar_path, ...(await WorkspaceModel.logoPathsOwnedBy(user.id))];
+    await UserModel.delete(user.id);
+    await Promise.all(files.map(removeImage));
+
+    req.session.regenerate(err => {
+      if (err) return res.redirect('/login');
+      flash(req, 'success', 'Sua conta foi excluída.');
+      res.redirect('/login');
+    });
   }
 }

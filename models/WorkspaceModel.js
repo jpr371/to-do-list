@@ -39,6 +39,22 @@ export default class WorkspaceModel {
     );
   }
 
+  // Workspaces cujo dono é o usuário e que têm outros integrantes (impedem a exclusão da conta).
+  static async ownedWithOtherMembers(userId) {
+    return query(
+      `SELECT w.id, w.name
+       FROM workspaces w
+       WHERE w.owner_id = ?
+         AND EXISTS (SELECT 1 FROM workspace_members m WHERE m.workspace_id = w.id AND m.user_id <> ?)`,
+      [userId, userId]
+    );
+  }
+
+  static async logoPathsOwnedBy(userId) {
+    const rows = await query('SELECT logo_path FROM workspaces WHERE owner_id = ? AND logo_path IS NOT NULL', [userId]);
+    return rows.map(row => row.logo_path);
+  }
+
   // Retorna o Workspace somente se o usuário for membro dele.
   static async findForMember(workspaceId, userId) {
     const rows = await query(

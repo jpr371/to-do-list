@@ -89,6 +89,7 @@ Tambem e possivel criar uma conta nova em `/register`.
 - Criacao de Workspace de equipe para contas profissionais.
 - Login automatico apos cadastro.
 - Perfil com nome, e-mail, ocupacao, biografia, avatar, preferencias, notificacoes e senha.
+- Exclusao de conta no perfil, com confirmacao por senha, removendo tarefas, atividades, Workspaces e imagens do usuario.
 - Seletor de Workspace na barra lateral quando o usuario tem mais de um ambiente.
 - Tarefas isoladas por Workspace ativo.
 - Migracao de contas antigas para Workspace pessoal sem apagar tarefas.

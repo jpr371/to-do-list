@@ -40,6 +40,7 @@ router.post('/profile/avatar', requireAuth, singleImage('avatar'), ProfileContro
 router.post('/profile/avatar/remove', requireAuth, ProfileController.removeAvatar);
 router.post('/profile/preferences', requireAuth, ProfileController.updatePreferences);
 router.post('/profile/password', requireAuth, ProfileController.updatePassword);
+router.post('/profile/delete', requireAuth, ProfileController.deleteAccount);
 
 router.post('/workspaces/switch', requireAuth, WorkspaceController.switch);
 router.get('/workspaces/:id', requireAuth, WorkspaceController.show);

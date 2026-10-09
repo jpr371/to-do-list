@@ -125,6 +125,14 @@
   document.querySelector('[data-confirm-ok]')?.addEventListener('click', () => deleteForm?.submit());
   deleteOverlay?.addEventListener('click', e => { if (e.target === deleteOverlay) deleteOverlay.classList.remove('show'); });
 
+  const deleteAccountOverlay = document.getElementById('overlayDeleteAccount');
+  document.querySelector('[data-delete-account]')?.addEventListener('click', () => {
+    deleteAccountOverlay?.classList.add('show');
+    document.getElementById('p-delete-password')?.focus();
+  });
+  document.querySelector('[data-delete-account-cancel]')?.addEventListener('click', () => deleteAccountOverlay?.classList.remove('show'));
+  deleteAccountOverlay?.addEventListener('click', e => { if (e.target === deleteAccountOverlay) deleteAccountOverlay.classList.remove('show'); });
+
   // Painéis laterais: fechar com clique fora ou Esc
   document.querySelectorAll('.overlay[data-close-href]').forEach(ov => {
     ov.addEventListener('click', e => { if (e.target === ov) location.href = ov.dataset.closeHref; });
@@ -132,6 +140,7 @@
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (deleteOverlay?.classList.contains('show')) { deleteOverlay.classList.remove('show'); return; }
+    if (deleteAccountOverlay?.classList.contains('show')) { deleteAccountOverlay.classList.remove('show'); return; }
     if (wsMenu && !wsMenu.classList.contains('hidden')) { wsMenu.classList.add('hidden'); wsToggle?.setAttribute('aria-expanded', 'false'); wsToggle?.focus(); return; }
     if (profileMenu && !profileMenu.classList.contains('hidden')) { profileMenu.classList.add('hidden'); return; }
     if (sidebar?.classList.contains('open')) { sidebar.classList.remove('open'); return; }

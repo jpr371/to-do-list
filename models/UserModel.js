@@ -46,6 +46,11 @@ export default class UserModel {
     await query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
   }
 
+  // Remove a conta; tarefas, atividades, preferências, Workspaces próprios e vínculos saem por ON DELETE CASCADE.
+  static async delete(id) {
+    await query('DELETE FROM users WHERE id = ?', [id]);
+  }
+
   static async setAvatar(id, avatarPath) {
     await query('UPDATE users SET avatar_path = ? WHERE id = ?', [avatarPath, id]);
   }
