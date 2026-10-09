@@ -521,3 +521,114 @@ input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.7}
   .topbar .actions{gap:8px}
 }
 .row-meta{display:none;grid-column:2/4;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* ===== AVATAR / WORKSPACE ===== */
+.avatar{overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar-lg,.avatar-xl{border:var(--b);box-shadow:var(--sh-sm);font-size:24px}
+.avatar-lg{width:76px;height:76px}
+.avatar-xl{width:96px;height:96px;font-size:30px;box-shadow:var(--sh)}
+.avatar.ws-logo{border-radius:9px;background:var(--yellow);color:var(--on-yellow)}
+.avatar-lg.ws-logo,.avatar-xl.ws-logo{border-radius:var(--r-lg);transform:rotate(-4deg)}
+.ws-switch{position:relative;margin:0 0 20px}
+.ws-current{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:1.5px dashed var(--side-line);border-radius:10px;text-align:left;transition:background .15s}
+.ws-current:hover{background:var(--side-2)}
+.ws-current>div:nth-child(2){min-width:0;flex:1}
+.ws-current .chev-ud{color:var(--side-muted)}
+.ws-current .avatar{width:32px;height:32px;font-size:12px}
+.ws-kind{font-family:var(--f-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--side-muted)}
+.ws-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-menu{bottom:auto;top:calc(100% + 6px)}
+.ws-menu button{cursor:pointer}
+.ws-menu button:hover{background:var(--yellow-soft)}
+.ws-menu button .icon{width:16px;height:16px;color:var(--muted)}
+.ws-menu button span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-menu .ws-check{color:var(--text)!important}
+.nav-item .count.late{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ===== FORM EXTRAS ===== */
+.field-label{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;color:var(--text-2)}
+.field-label .icon{width:13px;height:13px}
+.field.has-error input,.field.has-error select,.field.has-error textarea{border-color:var(--red-ink);background-color:var(--red-soft)}
+.field-error{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:13px;font-weight:600;color:var(--red-ink);animation:rise .2s var(--ease)}
+.field-hint{margin-top:7px;font-size:12.5px;color:var(--muted)}
+.opt-tag{font-family:var(--f-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:6px;border:1.5px solid var(--faint);color:var(--muted);vertical-align:middle;margin-left:6px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.field label.chip,.field label.check-row{font-family:var(--f-ui);font-size:14.5px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);margin-bottom:0}
+.field label.chip{display:inline-flex}
+.chip{position:relative;cursor:pointer}
+.field .chip input{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;padding:0;border:0}
+.chip span{display:inline-flex;align-items:center;padding:7px 12px;border:1.5px solid var(--ink);border-radius:8px;background:var(--surface);font-size:13.5px;font-weight:600;transition:background .15s,transform .12s var(--ease),box-shadow .12s var(--ease)}
+.chip:hover span{background:var(--surface-2)}
+.chip input:checked+span{background:var(--yellow);color:var(--on-yellow);box-shadow:var(--sh-sm);transform:translate(-1px,-1px)}
+.chip input:focus-visible+span{outline:2px dashed var(--ink);outline-offset:3px}
+.chip.is-fixed{cursor:default}
+.chip.is-fixed input:checked+span{opacity:.75}
+.check-row{display:flex;align-items:flex-start;gap:12px;padding:11px 0;cursor:pointer}
+.check-row+.check-row{border-top:1.5px dashed var(--line-soft)}
+.field .check-row input{width:19px;height:19px;padding:0;margin-top:1px;flex-shrink:0;transform:none;box-shadow:none}
+.check-row b{display:block;font-size:14.5px}
+.check-row small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.notice-banner{background:var(--yellow-soft)}
+.notice-banner .icon{color:var(--text)}
+.grid-2.single{grid-template-columns:minmax(0,1fr)}
+
+/* ===== SIGNUP STEPS ===== */
+.steps{margin:-8px 0 18px}
+.steps-label{display:block;font-family:var(--f-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.steps-label b{color:var(--text)}
+.steps-bar{display:flex;gap:5px}
+.steps-bar span{height:7px;flex:1;background:var(--surface-3);border:1.5px solid var(--ink);border-radius:4px;transition:background .25s var(--ease)}
+.steps-bar span.on{background:var(--yellow)}
+.step{border:0;min-width:0}
+.step+.step{margin-top:22px}
+.step-title{font-size:19px;font-weight:800;line-height:1.2;margin-bottom:16px;padding:0}
+.register-form.is-wizard .step{display:none}
+.register-form.is-wizard .step.is-active{display:block;margin-top:0;animation:rise .3s var(--ease)}
+.register-form:not(.is-wizard) [data-prev],.register-form:not(.is-wizard) [data-next]{display:none}
+.choice-grid{display:flex;flex-direction:column;gap:12px}
+.choice{display:flex;align-items:center;gap:14px;padding:14px;border:var(--b);border-radius:12px;background:var(--surface);box-shadow:var(--sh-sm);cursor:pointer;transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .15s}
+.choice:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--shadow-c)}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice:has(input:checked){background:var(--yellow-soft);box-shadow:var(--sh)}
+.choice:has(input:focus-visible){outline:2px dashed var(--ink);outline-offset:3px}
+.choice-ic{width:42px;height:42px;border-radius:50%;border:var(--b);background:var(--surface-2);display:grid;place-items:center;flex-shrink:0;transition:background .15s}
+.choice:has(input:checked) .choice-ic{background:var(--yellow);color:var(--on-yellow)}
+.choice-text b{display:block;font-size:15.5px}
+.choice-text small{display:block;font-size:13px;color:var(--muted);margin-top:2px;line-height:1.4}
+.choice-grid.has-error .choice{border-color:var(--red-ink)}
+.step-nav{display:flex;gap:10px;margin-top:20px}
+.step-nav .btn{flex:1;justify-content:center}
+.auth-box .step-nav .btn-primary{margin-top:0}
+.register-form.is-wizard [data-prev][hidden]+.btn{flex:1}
+.summary .kv b{text-align:right;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.summary .kv span{flex-shrink:0}
+.summary .kv:last-child{border-bottom:0}
+
+/* ===== PROFILE ===== */
+.profile-head{display:flex;align-items:center;gap:24px;padding:24px 26px;margin-bottom:24px}
+.ph-text{min-width:0}
+.profile-head h2{font-size:clamp(26px,3vw,36px);margin-bottom:10px;overflow-wrap:anywhere}
+.ph-meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13.5px;color:var(--muted);font-weight:600}
+.ph-meta span{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
+.ph-meta .icon{width:14px;height:14px}
+.ph-bio{margin-top:12px;color:var(--text-2);font-size:15px;max-width:620px;overflow-wrap:anywhere}
+.profile-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.profile-col{display:flex;flex-direction:column;gap:24px;min-width:0}
+.panel-form{padding:6px 2px 6px}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding-top:4px}
+.photo-form{padding:8px 2px 6px}
+.photo-row{display:flex;align-items:center;gap:20px;margin-bottom:14px}
+.photo-actions{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.photo-actions label.btn{cursor:pointer}
+.photo-actions:has(input:focus-visible) label.btn{outline:2px dashed var(--ink);outline-offset:3px}
+.panel .kv{padding:12px 2px}
+.panel .kv:last-child{border-bottom:0}
+@media(max-width:1100px){.profile-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){
+  .profile-head{flex-direction:column;align-items:flex-start;padding:20px}
+  .photo-row{gap:14px}
+  .form-actions .btn{flex:1;justify-content:center}
+  .auth-card.register-form{padding:20px 16px 18px}
+}

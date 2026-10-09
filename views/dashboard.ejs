@@ -1,5 +1,6 @@
 <%- include('partials/app-start', { pageTitle, activePage }) %>
-<% const pendingCount = Number(counts.pending_count || 0); const progressCount = Number(counts.progress_count || 0); const doneCount = Number(counts.done_count || 0); const lateCount = Number(counts.late_count || 0); const todayCount = Number(counts.today_count || 0); const totalCount = pendingCount + progressCount + doneCount; const donePct = totalCount ? Math.round(doneCount / totalCount * 100) : 0; const firstName = String(user?.name || '').split(/\s+/)[0] || ''; %>
+<% const pendingCount = Number(counts.pending_count || 0); const progressCount = Number(counts.progress_count || 0); const doneCount = Number(counts.done_count || 0); const lateCount = Number(counts.late_count || 0); const todayCount = Number(counts.today_count || 0); const totalCount = pendingCount + progressCount + doneCount; const donePct = totalCount ? Math.round(doneCount / totalCount * 100) : 0; const firstName = String(user?.name || '').split(/\s+/)[0] || ''; const features = preferences.features; %>
+<% if (showDueNotice) { %><div class="auth-banner notice-banner"><%- icon('calendar','sm') %><span>Você tem <%= todayCount %> tarefa<%= todayCount === 1 ? '' : 's' %> com prazo para hoje. <a href="/tasks?due=today">Ver tarefas</a></span></div><% } %>
 <section class="hero">
   <div>
     <div class="kicker"><%- icon('sun') %>Resumo do dia</div>
@@ -12,7 +13,7 @@
     </p>
     <div class="hero-actions">
       <a class="btn btn-primary btn-sm" href="/tasks?action=new"><%- icon('plus','sm') %>Nova tarefa</a>
-      <a class="btn btn-ghost btn-sm" href="/kanban"><%- icon('kanban','sm') %>Abrir Kanban</a>
+      <% if (features.includes('kanban')) { %><a class="btn btn-ghost btn-sm" href="/kanban"><%- icon('kanban','sm') %>Abrir Kanban</a><% } %>
     </div>
   </div>
   <div class="stamp" style="--p:<%= donePct %>" title="<%= doneCount %> de <%= totalCount %> concluídas"><div class="stamp-v"><b><%= donePct %>%</b><span>feito</span></div></div>
@@ -25,7 +26,7 @@
   <a class="stat late <%= lateCount > 0 ? 'has' : '' %>" href="/tasks?due=overdue"><div class="st-top"><span class="st-ic"><%- icon('alert') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= lateCount %></div><div class="l">Atrasadas</div></div></a>
 </div>
 
-<div class="grid-2">
+<div class="grid-2 <%= features.includes('deadlines') ? '' : 'single' %>">
   <section class="panel">
     <div class="panel-head"><h3><span class="h-ic"><%- icon('target') %></span>Próximas ações</h3><a class="panel-link" href="/tasks">Ver todas<%- icon('arrow-right') %></a></div>
     <% if (!next.length) { %><div class="panel-empty"><%- icon('check-circle') %>Nenhuma tarefa pendente. Crie uma nova tarefa para começar.</div><% } %>
@@ -37,6 +38,7 @@
       </a>
     <% }) %>
   </section>
+  <% if (features.includes('deadlines')) { %>
   <section class="panel">
     <div class="panel-head"><h3><span class="h-ic sky"><%- icon('calendar') %></span>Próximos prazos</h3><a class="panel-link" href="/tasks?due=upcoming">7 dias<%- icon('arrow-right') %></a></div>
     <% if (!upcoming.length) { %><div class="panel-empty"><%- icon('calendar') %>Sem prazos nos próximos 7 dias.</div><% } %>
@@ -47,6 +49,7 @@
       </a>
     <% }) %>
   </section>
+  <% } %>
 </div>
 
 <section class="panel" style="margin-top:18px">

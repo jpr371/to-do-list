@@ -1,9 +1,18 @@
 import { query } from '../config/database.js';
 
+// Escopo das tarefas: dono + Workspace ativo. No ambiente pessoal também entram
+// tarefas sem Workspace, para nada sumir de contas criadas antes dos Workspaces.
+function scoped(scope) {
+  return scope.personal
+    ? { sql: 'user_id = ? AND (workspace_id = ? OR workspace_id IS NULL)', params: [scope.userId, scope.workspaceId] }
+    : { sql: 'user_id = ? AND workspace_id = ?', params: [scope.userId, scope.workspaceId] };
+}
+
 export default class TaskModel {
-  static async list(userId, filters = {}) {
-    const where = ['user_id = ?'];
-    const params = [userId];
+  static async list(scope, filters = {}) {
+    const base = scoped(scope);
+    const where = [base.sql];
+    const params = [...base.params];
     if (filters.q) {
       where.push('(title LIKE ? OR description LIKE ? OR category LIKE ?)');
       params.push(`%${filters.q}%`, `%${filters.q}%`, `%${filters.q}%`);
@@ -24,49 +33,56 @@ export default class TaskModel {
     return query(`SELECT * FROM tasks WHERE ${where.join(' AND ')} ${order}`, params);
   }
 
-  static async findById(userId, id) {
-    const rows = await query('SELECT * FROM tasks WHERE user_id = ? AND id = ? LIMIT 1', [userId, id]);
+  static async findById(scope, id) {
+    const base = scoped(scope);
+    const rows = await query(`SELECT * FROM tasks WHERE ${base.sql} AND id = ? LIMIT 1`, [...base.params, id]);
     return rows[0] || null;
   }
 
-  static async create(userId, data) {
+  static async create(scope, data) {
     const result = await query(
-      'INSERT INTO tasks (user_id, title, description, category, status, priority, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [userId, data.title, data.description, data.category, data.status, data.priority, data.dueDate || null]
+      'INSERT INTO tasks (user_id, workspace_id, title, description, category, status, priority, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [scope.userId, scope.workspaceId, data.title, data.description, data.category, data.status, data.priority, data.dueDate || null]
     );
     return result.insertId;
   }
 
-  static async update(userId, id, data) {
+  static async update(scope, id, data) {
+    const base = scoped(scope);
     await query(
-      'UPDATE tasks SET title = ?, description = ?, category = ?, status = ?, priority = ?, due_date = ? WHERE user_id = ? AND id = ?',
-      [data.title, data.description, data.category, data.status, data.priority, data.dueDate || null, userId, id]
+      `UPDATE tasks SET title = ?, description = ?, category = ?, status = ?, priority = ?, due_date = ? WHERE ${base.sql} AND id = ?`,
+      [data.title, data.description, data.category, data.status, data.priority, data.dueDate || null, ...base.params, id]
     );
   }
 
-  static async delete(userId, id) {
-    await query('DELETE FROM tasks WHERE user_id = ? AND id = ?', [userId, id]);
+  static async delete(scope, id) {
+    const base = scoped(scope);
+    await query(`DELETE FROM tasks WHERE ${base.sql} AND id = ?`, [...base.params, id]);
   }
 
-  static async setStatus(userId, id, status) {
-    await query('UPDATE tasks SET status = ? WHERE user_id = ? AND id = ?', [status, userId, id]);
+  static async setStatus(scope, id, status) {
+    const base = scoped(scope);
+    await query(`UPDATE tasks SET status = ? WHERE ${base.sql} AND id = ?`, [status, ...base.params, id]);
   }
 
-  static async bulkStatus(userId, ids, status) {
+  static async bulkStatus(scope, ids, status) {
     if (!ids.length) return 0;
+    const base = scoped(scope);
     const placeholders = ids.map(() => '?').join(',');
-    const result = await query(`UPDATE tasks SET status = ? WHERE user_id = ? AND id IN (${placeholders})`, [status, userId, ...ids]);
+    const result = await query(`UPDATE tasks SET status = ? WHERE ${base.sql} AND id IN (${placeholders})`, [status, ...base.params, ...ids]);
     return result.affectedRows || 0;
   }
 
-  static async categories(userId) {
+  static async categories(scope) {
+    const base = scoped(scope);
     return query(
-      "SELECT category, COUNT(*) AS qty FROM tasks WHERE user_id = ? AND category IS NOT NULL AND category <> '' GROUP BY category ORDER BY category ASC",
-      [userId]
+      `SELECT category, COUNT(*) AS qty FROM tasks WHERE ${base.sql} AND category IS NOT NULL AND category <> '' GROUP BY category ORDER BY category ASC`,
+      base.params
     );
   }
 
-  static async dashboardCounts(userId) {
+  static async dashboardCounts(scope) {
+    const base = scoped(scope);
     const rows = await query(
       `SELECT
         SUM(CASE WHEN status IN ('inbox','pending') THEN 1 ELSE 0 END) AS pending_count,
@@ -74,34 +90,36 @@ export default class TaskModel {
         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS done_count,
         SUM(CASE WHEN status <> 'done' AND due_date IS NOT NULL AND due_date < CURDATE() THEN 1 ELSE 0 END) AS late_count,
         SUM(CASE WHEN status <> 'done' AND due_date = CURDATE() THEN 1 ELSE 0 END) AS today_count
-       FROM tasks WHERE user_id = ?`,
-      [userId]
+       FROM tasks WHERE ${base.sql}`,
+      base.params
     );
     return rows[0] || {};
   }
 
-  static async next(userId) {
+  static async next(scope) {
+    const base = scoped(scope);
     return query(
       `SELECT *
        FROM tasks
-       WHERE user_id = ? AND status <> 'done'
+       WHERE ${base.sql} AND status <> 'done'
        ORDER BY due_date IS NULL, due_date ASC, FIELD(priority, 'urgent', 'high', 'normal', 'low')
        LIMIT 6`,
-      [userId]
+      base.params
     );
   }
 
-  static async upcoming(userId) {
+  static async upcoming(scope) {
+    const base = scoped(scope);
     return query(
       `SELECT *
        FROM tasks
-       WHERE user_id = ? AND status <> 'done'
+       WHERE ${base.sql} AND status <> 'done'
          AND due_date IS NOT NULL
          AND due_date >= CURDATE()
          AND due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
        ORDER BY due_date ASC
        LIMIT 5`,
-      [userId]
+      base.params
     );
   }
 }

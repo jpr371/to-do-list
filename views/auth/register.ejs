@@ -3,6 +3,14 @@
 <head><%- include('../partials/head', { headTitle: 'Criar conta - TaskFlow' }) %></head>
 <body>
 <div class="theme-float"><%- themeToggle() %></div>
+<%
+  const fieldError = name => errors[name] ? `<div class="field-error" id="err-${name}">${String(errors[name]).replace(/</g, '&lt;')}</div>` : '';
+  const invalid = name => errors[name] ? `aria-invalid="true" aria-describedby="err-${name}"` : '';
+  const hasErr = name => errors[name] ? 'has-error' : '';
+  const type = old.account_type || '';
+  const selectedFeatures = old.features || [];
+  const hasErrors = Object.keys(errors).length > 0;
+%>
 <section class="screen" id="screen-signup">
   <div class="auth-wrap">
     <div class="auth-side">
@@ -23,13 +31,86 @@
         <div class="eyebrow">Criar conta</div>
         <h2>Abra seu <em>caderno.</em></h2>
         <p class="sub">Leva menos de um minuto.</p>
-        <% errors.forEach(error => { %><div class="auth-banner"><%- icon('alert','sm') %><%= error %></div><% }) %>
-        <form class="auth-card" method="post" autocomplete="on">
-          <div class="field"><label for="r-name"><%- icon('user') %>Nome completo</label><div class="input-ic"><%- icon('user') %><input id="r-name" name="name" maxlength="100" autocomplete="name" value="<%= old.name || '' %>" placeholder="Seu nome" required autofocus></div></div>
-          <div class="field"><label for="r-email"><%- icon('mail') %>E-mail</label><div class="input-ic"><%- icon('mail') %><input id="r-email" name="email" type="email" maxlength="255" autocomplete="email" value="<%= old.email || '' %>" placeholder="voce@empresa.com" required></div></div>
-          <div class="field"><label for="password"><%- icon('lock') %>Senha</label><div class="pw-wrap input-ic"><%- icon('lock') %><input id="password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required><button type="button" data-show-password>Mostrar</button></div><div class="strength" data-strength><span></span><span></span><span></span></div></div>
-          <div class="field"><label for="r-confirm"><%- icon('lock') %>Confirmar senha</label><div class="input-ic"><%- icon('check-circle') %><input id="r-confirm" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" placeholder="Repita a senha" required></div></div>
-          <button class="btn btn-primary btn-block" type="submit">Criar conta<%- icon('arrow-right','sm') %></button>
+        <div class="steps" data-steps hidden aria-live="polite">
+          <span class="steps-label">Etapa <b data-step-num><%= step %></b> de 4</span>
+          <div class="steps-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        </div>
+        <% if (hasErrors) { %><div class="auth-banner"><%- icon('alert','sm') %>Revise os campos destacados.</div><% } %>
+        <form class="auth-card register-form" method="post" action="/register" autocomplete="on" novalidate data-register data-start-step="<%= step %>">
+
+          <fieldset class="step" data-step="1">
+            <legend class="step-title">Como você pretende utilizar o TaskFlow?</legend>
+            <div class="choice-grid <%= hasErr('account_type') %>" role="radiogroup">
+              <label class="choice">
+                <input type="radio" name="account_type" value="personal" <%= type === 'personal' ? 'checked' : '' %> required>
+                <span class="choice-ic"><%- icon('user') %></span>
+                <span class="choice-text"><b>Uso pessoal</b><small>Para organizar estudos, trabalho e tarefas do dia a dia.</small></span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="account_type" value="team" <%= type === 'team' ? 'checked' : '' %>>
+                <span class="choice-ic"><%- icon('users') %></span>
+                <span class="choice-text"><b>Equipe ou empresa</b><small>Para organizar as tarefas de um grupo, equipe ou organização.</small></span>
+              </label>
+            </div>
+            <div data-error-for="account_type"><%- fieldError('account_type') %></div>
+          </fieldset>
+
+          <fieldset class="step" data-step="2">
+            <legend class="step-title"><span data-title-personal>Dados da conta</span><span data-title-team hidden>Dados do responsável</span></legend>
+            <div class="field <%= hasErr('name') %>"><label for="r-name"><%- icon('user') %>Nome completo</label><div class="input-ic"><%- icon('user') %><input id="r-name" name="name" maxlength="100" autocomplete="name" value="<%= old.name || '' %>" placeholder="Seu nome" required <%- invalid('name') %>></div><%- fieldError('name') %></div>
+            <div class="field <%= hasErr('email') %>"><label for="r-email"><%- icon('mail') %>E-mail</label><div class="input-ic"><%- icon('mail') %><input id="r-email" name="email" type="email" maxlength="255" autocomplete="email" value="<%= old.email || '' %>" placeholder="voce@empresa.com" required <%- invalid('email') %>></div><%- fieldError('email') %></div>
+            <div class="field <%= hasErr('password') %>"><label for="password"><%- icon('lock') %>Senha</label><div class="pw-wrap input-ic"><%- icon('lock') %><input id="password" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required <%- invalid('password') %>><button type="button" data-show-password>Mostrar</button></div><div class="strength" data-strength><span></span><span></span><span></span></div><%- fieldError('password') %><% if (hasErrors && !errors.password) { %><div class="field-hint">Por segurança, informe a senha novamente.</div><% } %></div>
+            <div class="field <%= hasErr('password_confirmation') %>"><label for="r-confirm"><%- icon('lock') %>Confirmar senha</label><div class="pw-wrap input-ic"><%- icon('check-circle') %><input id="r-confirm" name="password_confirmation" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Repita a senha" required <%- invalid('password_confirmation') %>><button type="button" data-show-password>Mostrar</button></div><%- fieldError('password_confirmation') %></div>
+          </fieldset>
+
+          <fieldset class="step" data-step="3" data-for="personal">
+            <legend class="step-title">Personalização <span class="opt-tag">Opcional</span></legend>
+            <input type="hidden" name="features_sent" value="1">
+            <div class="field <%= hasErr('main_use') %>">
+              <span class="field-label" id="lbl-main-use"><%- icon('target') %>Principal utilização</span>
+              <div class="chips" role="radiogroup" aria-labelledby="lbl-main-use">
+                <% Object.entries(mainUses).forEach(([value, label]) => { %><label class="chip"><input type="radio" name="main_use" value="<%= value %>" <%= old.main_use === value ? 'checked' : '' %>><span><%= label %></span></label><% }) %>
+              </div>
+              <%- fieldError('main_use') %>
+            </div>
+            <div class="field <%= hasErr('occupation') %>">
+              <span class="field-label" id="lbl-occupation"><%- icon('briefcase') %>Ocupação</span>
+              <div class="chips" role="radiogroup" aria-labelledby="lbl-occupation">
+                <% occupations.forEach(value => { %><label class="chip"><input type="radio" name="occupation" value="<%= value %>" <%= old.occupation === value ? 'checked' : '' %>><span><%= value %></span></label><% }) %>
+              </div>
+              <%- fieldError('occupation') %>
+            </div>
+            <div class="field">
+              <span class="field-label" id="lbl-features"><%- icon('list') %>Recursos que pretende utilizar</span>
+              <div class="chips" role="group" aria-labelledby="lbl-features">
+                <label class="chip is-fixed"><input type="checkbox" checked disabled><span>Tarefas</span></label>
+                <% Object.entries(featureOptions).forEach(([value, label]) => { %><label class="chip"><input type="checkbox" name="features" value="<%= value %>" <%= selectedFeatures.includes(value) ? 'checked' : '' %>><span><%= label %></span></label><% }) %>
+              </div>
+              <div class="field-hint">Você pode alterar isso depois em Meu perfil.</div>
+            </div>
+          </fieldset>
+
+          <fieldset class="step" data-step="3" data-for="team">
+            <legend class="step-title">Dados da equipe</legend>
+            <div class="field <%= hasErr('team_name') %>"><label for="t-name"><%- icon('users') %>Nome da equipe ou organização</label><input id="t-name" name="team_name" maxlength="100" value="<%= old.team_name || '' %>" placeholder="Ex: Estúdio Norte" required <%- invalid('team_name') %>><%- fieldError('team_name') %></div>
+            <div class="two-col">
+              <div class="field <%= hasErr('team_type') %>"><label for="t-type"><%- icon('briefcase') %>Tipo de equipe</label><select id="t-type" name="team_type" required <%- invalid('team_type') %>><option value="">Selecione</option><% Object.entries(teamTypes).forEach(([value, label]) => { %><option value="<%= value %>" <%= old.team_type === value ? 'selected' : '' %>><%= label %></option><% }) %></select><%- fieldError('team_type') %></div>
+              <div class="field <%= hasErr('team_size') %>"><label for="t-size"><%- icon('users') %>Integrantes</label><select id="t-size" name="team_size" required <%- invalid('team_size') %>><option value="">Selecione</option><% Object.entries(teamSizes).forEach(([value, label]) => { %><option value="<%= value %>" <%= old.team_size === value ? 'selected' : '' %>><%= label %></option><% }) %></select><%- fieldError('team_size') %></div>
+            </div>
+            <div class="field <%= hasErr('team_purpose') %>"><label for="t-purpose"><%- icon('target') %>Objetivo principal</label><select id="t-purpose" name="team_purpose" required <%- invalid('team_purpose') %>><option value="">Selecione</option><% Object.entries(teamPurposes).forEach(([value, label]) => { %><option value="<%= value %>" <%= old.team_purpose === value ? 'selected' : '' %>><%= label %></option><% }) %></select><%- fieldError('team_purpose') %></div>
+            <div class="field <%= hasErr('team_description') %>"><label for="t-desc"><%- icon('pencil') %>Descrição <span class="opt-tag">Opcional</span></label><textarea id="t-desc" name="team_description" maxlength="500" rows="3" placeholder="Sobre o que a equipe trabalha" <%- invalid('team_description') %>><%= old.team_description || '' %></textarea><%- fieldError('team_description') %></div>
+          </fieldset>
+
+          <fieldset class="step" data-step="4">
+            <legend class="step-title">Confirmação</legend>
+            <div class="summary" data-summary></div>
+          </fieldset>
+
+          <div class="step-nav">
+            <button class="btn btn-ghost" type="button" data-prev><%- icon('arrow-left','sm') %>Voltar</button>
+            <button class="btn btn-primary" type="button" data-next>Continuar<%- icon('arrow-right','sm') %></button>
+            <button class="btn btn-primary" type="submit" data-submit>Criar conta<%- icon('arrow-right','sm') %></button>
+          </div>
         </form>
         <p class="auth-foot">Já tem conta? <a href="/login">Entrar</a></p>
       </div>

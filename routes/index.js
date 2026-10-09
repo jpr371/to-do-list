@@ -3,7 +3,10 @@ import AuthController from '../controllers/AuthController.js';
 import DashboardController from '../controllers/DashboardController.js';
 import TaskController from '../controllers/TaskController.js';
 import KanbanController from '../controllers/KanbanController.js';
-import { requireAuth } from '../middlewares/index.js';
+import ProfileController from '../controllers/ProfileController.js';
+import WorkspaceController from '../controllers/WorkspaceController.js';
+import { requireAuth, requireGuest } from '../middlewares/index.js';
+import { singleImage } from '../utils/uploads.js';
 
 const router = Router();
 
@@ -26,9 +29,23 @@ router.get('/', (req, res) => res.redirect(req.session.user ? '/dashboard' : '/l
 
 router.get('/login', AuthController.loginForm);
 router.post('/login', AuthController.login);
-router.get('/register', AuthController.registerForm);
-router.post('/register', AuthController.register);
+router.get('/register', requireGuest, AuthController.registerForm);
+router.post('/register', requireGuest, AuthController.register);
+router.post('/register/check-email', requireGuest, AuthController.checkEmail);
 router.get('/logout', AuthController.logout);
+
+router.get('/profile', requireAuth, ProfileController.index);
+router.post('/profile', requireAuth, ProfileController.updateInfo);
+router.post('/profile/avatar', requireAuth, singleImage('avatar'), ProfileController.updateAvatar);
+router.post('/profile/avatar/remove', requireAuth, ProfileController.removeAvatar);
+router.post('/profile/preferences', requireAuth, ProfileController.updatePreferences);
+router.post('/profile/password', requireAuth, ProfileController.updatePassword);
+
+router.post('/workspaces/switch', requireAuth, WorkspaceController.switch);
+router.get('/workspaces/:id', requireAuth, WorkspaceController.show);
+router.post('/workspaces/:id', requireAuth, WorkspaceController.update);
+router.post('/workspaces/:id/logo', requireAuth, singleImage('logo'), WorkspaceController.updateLogo);
+router.post('/workspaces/:id/logo/remove', requireAuth, WorkspaceController.removeLogo);
 
 router.get('/dashboard', requireAuth, DashboardController.index);
 router.get('/tasks', requireAuth, TaskController.index);

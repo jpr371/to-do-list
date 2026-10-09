@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import router from './routes/index.js';
 import { applyMiddlewares } from './middlewares/index.js';
 import { testConnection } from './config/database.js';
+import { runMigrations } from './config/migrations.js';
 import { templateLocals } from './utils/viewHelpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +29,7 @@ app.use((req, res) => {
 });
 
 await testConnection();
+await runMigrations();
 
 app.listen(port, () => {
   console.log(`TaskFlow rodando em http://localhost:${port}`);

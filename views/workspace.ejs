@@ -1,0 +1,78 @@
+<%- include('partials/app-start', { pageTitle, activePage }) %>
+<%
+  const fieldError = name => errors[name] ? `<div class="field-error" id="err-${name}">${String(errors[name]).replace(/</g, '&lt;')}</div>` : '';
+  const invalid = name => errors[name] ? `aria-invalid="true" aria-describedby="err-${name}"` : '';
+  const hasErr = name => errors[name] ? 'has-error' : '';
+  const memberCount = Number(workspace.member_count || 0);
+  const roles = { owner: 'Proprietário', admin: 'Administrador', member: 'Membro' };
+%>
+<section class="panel profile-head">
+  <%- avatar(workspace, 'avatar-xl ws-logo') %>
+  <div class="ph-text">
+    <h2><%= workspace.name %></h2>
+    <div class="ph-meta">
+      <span><%- icon('briefcase') %><%= teamTypes[workspace.team_type] || 'Equipe' %></span>
+      <span><%- icon('users') %><%= memberCount %> integrante<%= memberCount === 1 ? '' : 's' %> cadastrado<%= memberCount === 1 ? '' : 's' %></span>
+      <span><%- icon('user') %>Proprietário: <%= workspace.owner_name %></span>
+    </div>
+    <% if (workspace.description) { %><p class="ph-bio"><%= workspace.description %></p><% } %>
+  </div>
+</section>
+
+<div class="profile-grid">
+  <div class="profile-col">
+    <section class="panel">
+      <div class="panel-head"><h3><span class="h-ic"><%- icon('users') %></span>Dados da equipe</h3><span class="pill"><%= roles[workspace.role] || 'Membro' %></span></div>
+      <% if (canEdit) { %>
+      <form method="post" action="/workspaces/<%= workspace.id %>" class="panel-form" novalidate>
+        <div class="field <%= hasErr('name') %>"><label for="w-name"><%- icon('users') %>Nome da equipe</label><input id="w-name" name="name" maxlength="100" value="<%= old.name %>" required <%- invalid('name') %>><%- fieldError('name') %></div>
+        <div class="two-col">
+          <div class="field <%= hasErr('team_type') %>"><label for="w-type"><%- icon('briefcase') %>Tipo de organização</label><select id="w-type" name="team_type" required <%- invalid('team_type') %>><option value="">Selecione</option><% Object.entries(teamTypes).forEach(([value, label]) => { %><option value="<%= value %>" <%= old.team_type === value ? 'selected' : '' %>><%= label %></option><% }) %></select><%- fieldError('team_type') %></div>
+          <div class="field <%= hasErr('team_size') %>"><label for="w-size"><%- icon('users') %>Tamanho</label><select id="w-size" name="team_size" required <%- invalid('team_size') %>><option value="">Selecione</option><% Object.entries(teamSizes).forEach(([value, label]) => { %><option value="<%= value %>" <%= old.team_size === value ? 'selected' : '' %>><%= label %></option><% }) %></select><%- fieldError('team_size') %></div>
+        </div>
+        <div class="field <%= hasErr('team_purpose') %>"><label for="w-purpose"><%- icon('target') %>Objetivo principal</label><select id="w-purpose" name="team_purpose" required <%- invalid('team_purpose') %>><option value="">Selecione</option><% Object.entries(teamPurposes).forEach(([value, label]) => { %><option value="<%= value %>" <%= old.team_purpose === value ? 'selected' : '' %>><%= label %></option><% }) %></select><%- fieldError('team_purpose') %></div>
+        <div class="field <%= hasErr('description') %>"><label for="w-desc"><%- icon('pencil') %>Descrição</label><textarea id="w-desc" name="description" maxlength="500" rows="4" placeholder="Sobre o que a equipe trabalha" <%- invalid('description') %>><%= old.description %></textarea><%- fieldError('description') %></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Salvando..."><%- icon('check','sm') %>Salvar alterações</button></div>
+      </form>
+      <% } else { %>
+      <div class="kv"><span><%- icon('briefcase') %>Tipo de organização</span><b><%= teamTypes[workspace.team_type] || '—' %></b></div>
+      <div class="kv"><span><%- icon('users') %>Tamanho</span><b><%= teamSizes[workspace.size_range] || '—' %></b></div>
+      <div class="kv"><span><%- icon('target') %>Objetivo principal</span><b><%= teamPurposes[workspace.purpose] || '—' %></b></div>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="profile-col">
+    <section class="panel">
+      <div class="panel-head"><h3><span class="h-ic sky"><%- icon('image') %></span>Imagem da equipe</h3></div>
+      <% if (canEdit) { %>
+      <form method="post" action="/workspaces/<%= workspace.id %>/logo" enctype="multipart/form-data" class="photo-form" data-image-form>
+        <div class="photo-row">
+          <div data-image-preview><%- avatar(workspace, 'avatar-lg ws-logo') %></div>
+          <div class="photo-actions">
+            <label class="btn btn-ghost btn-sm" for="w-logo"><%- icon('image','sm') %>Escolher imagem</label>
+            <input class="sr-only" id="w-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" data-image-input <%- invalid('logo') %>>
+            <div class="field-hint">JPG, PNG ou WEBP, até 2 MB.</div>
+          </div>
+        </div>
+        <div data-image-error><%- fieldError('logo') %></div>
+        <div class="form-actions">
+          <button class="btn btn-primary btn-sm" type="submit" data-image-save disabled data-loading-text="Enviando..."><%- icon('check','sm') %>Salvar imagem</button>
+          <% if (workspace.logo_path) { %><button class="btn btn-danger btn-sm" type="submit" form="removeLogoForm"><%- icon('trash','sm') %>Remover imagem</button><% } %>
+        </div>
+      </form>
+      <form method="post" action="/workspaces/<%= workspace.id %>/logo/remove" id="removeLogoForm" hidden></form>
+      <% } else { %>
+      <div class="photo-row"><%- avatar(workspace, 'avatar-lg ws-logo') %></div>
+      <% } %>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h3><span class="h-ic lilac"><%- icon('clock') %></span>Informações</h3></div>
+      <div class="kv"><span><%- icon('user') %>Proprietário</span><b><%= workspace.owner_name %></b></div>
+      <div class="kv"><span><%- icon('users') %>Integrantes cadastrados</span><b><%= memberCount %></b></div>
+      <div class="kv"><span><%- icon('calendar') %>Criada em</span><b><%= formatDate(workspace.created_at) %></b></div>
+    </section>
+  </div>
+</div>
+<%- include('partials/app-end') %>

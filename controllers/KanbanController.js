@@ -3,7 +3,7 @@ import { statuses, clearFlash } from '../utils/viewHelpers.js';
 
 export default class KanbanController {
   static async index(req, res) {
-    const tasks = await TaskModel.list(req.session.user.id);
+    const tasks = await TaskModel.list(req.scope);
     const groups = Object.fromEntries(Object.keys(statuses).map(status => [status, []]));
     tasks.forEach(task => {
       if (groups[task.status]) groups[task.status].push(task);

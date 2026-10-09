@@ -8,23 +8,37 @@
 <div class="app show" data-csrf="">
   <aside class="sidebar" id="sidebar">
     <a class="mark" href="/dashboard"><%- brandMark() %>TaskFlow</a>
+    <% const features = locals.preferences ? preferences.features : ['kanban','categories','deadlines']; const wsList = locals.workspaces || []; const activeWs = locals.activeWorkspace || null; %>
+    <% if (wsList.length > 1 && activeWs) { %>
+    <div class="ws-switch">
+      <button class="ws-current" type="button" data-ws-toggle aria-haspopup="menu" aria-expanded="false">
+        <%- avatar(activeWs, 'ws-logo') %>
+        <div><div class="ws-kind"><%= activeWs.kind === 'team' ? 'Equipe' : 'Pessoal' %></div><div class="ws-name"><%= activeWs.name %></div></div>
+        <%- icon('chevrons','sm chev-ud') %>
+      </button>
+      <div class="user-menu ws-menu hidden" id="wsMenu" role="menu">
+        <% wsList.forEach(ws => { %><form method="post" action="/workspaces/switch"><input type="hidden" name="workspace_id" value="<%= ws.id %>"><button type="submit" role="menuitem"><%- icon(ws.kind === 'team' ? 'users' : 'user') %><span><%= ws.name %></span><% if (ws.id === activeWs.id) { %><%- icon('check','sm ws-check') %><% } %></button></form><% }) %>
+      </div>
+    </div>
+    <% } %>
     <div class="nav-label">Caderno</div>
     <a class="nav-item <%= activePage === 'dashboard' ? 'active' : '' %>" href="/dashboard"><%- icon('home') %>Painel</a>
-    <a class="nav-item <%= activePage === 'tasks' ? 'active' : '' %>" href="/tasks"><%- icon('list') %>Todas as tarefas</a>
-    <a class="nav-item <%= activePage === 'kanban' ? 'active' : '' %>" href="/kanban"><%- icon('kanban') %>Kanban</a>
-    <a class="nav-item <%= activePage === 'categories' ? 'active' : '' %>" href="/tasks?view=category"><%- icon('tag') %>Categorias</a>
+    <a class="nav-item <%= activePage === 'tasks' ? 'active' : '' %>" href="/tasks"><%- icon('list') %>Todas as tarefas<% if (locals.overdueCount) { %><span class="count late" title="Tarefas atrasadas"><%= overdueCount %></span><% } %></a>
+    <% if (features.includes('kanban')) { %><a class="nav-item <%= activePage === 'kanban' ? 'active' : '' %>" href="/kanban"><%- icon('kanban') %>Kanban</a><% } %>
+    <% if (features.includes('categories')) { %><a class="nav-item <%= activePage === 'categories' ? 'active' : '' %>" href="/tasks?view=category"><%- icon('tag') %>Categorias</a><% } %>
+    <% if (activeWs && activeWs.kind === 'team') { %><a class="nav-item <%= activePage === 'workspace' ? 'active' : '' %>" href="/workspaces/<%= activeWs.id %>"><%- icon('users') %>Equipe</a><% } %>
     <div class="cta"><a class="btn btn-primary btn-block" href="/tasks?action=new"><%- icon('plus','sm') %>Nova tarefa</a></div>
-    <div class="sidebar-note"><b>Uma coisa de cada vez.</b>Arraste cartões no Kanban para avançar tarefas.</div>
+    <% if (features.includes('kanban')) { %><div class="sidebar-note"><b>Uma coisa de cada vez.</b>Arraste cartões no Kanban para avançar tarefas.</div><% } %>
     <div class="sidebar-foot">
       <div class="user-menu hidden" id="userMenu">
-        <a href="/dashboard"><%- icon('user') %>Meu perfil</a>
-        <a href="/tasks"><%- icon('settings') %>Preferências</a>
+        <a href="/profile"><%- icon('user') %>Meu perfil</a>
+        <a href="/profile#preferencias"><%- icon('settings') %>Preferências</a>
+        <% if (activeWs && activeWs.kind === 'team') { %><a href="/workspaces/<%= activeWs.id %>"><%- icon('users') %>Configurações da equipe</a><% } %>
         <hr>
         <a class="danger" href="/logout"><%- icon('logout') %>Sair da conta</a>
       </div>
       <button class="user-row" type="button" data-profile-toggle aria-haspopup="menu">
-        <% const parts = String(user?.name || 'User').trim().split(/\s+/); const initials = ((parts[0]?.[0] || 'U') + (parts[1]?.[0] || '')).toUpperCase(); %>
-        <div class="avatar"><%= initials %></div>
+        <%- avatar(user) %>
         <div><div class="user-name"><%= user?.name || '' %></div><div class="user-mail"><%= user?.email || user?.username || '' %></div></div>
         <%- icon('chevrons','sm chev-ud') %>
       </button>

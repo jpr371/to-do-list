@@ -1,0 +1,89 @@
+<%- include('partials/app-start', { pageTitle, activePage }) %>
+<%
+  const fieldError = name => errors[name] ? `<div class="field-error" id="err-${name}">${String(errors[name]).replace(/</g, '&lt;')}</div>` : '';
+  const invalid = name => errors[name] ? `aria-invalid="true" aria-describedby="err-${name}"` : '';
+  const hasErr = name => errors[name] ? 'has-error' : '';
+  const info = old.info || { name: user.name, email: user.email, occupation: user.occupation || '', bio: user.bio || '' };
+  const showInfoPassword = Boolean(errors.info_password) || String(info.email || '').toLowerCase() !== String(user.email || '').toLowerCase();
+%>
+<section class="panel profile-head">
+  <%- avatar(user, 'avatar-xl') %>
+  <div class="ph-text">
+    <h2><%= user.name %></h2>
+    <div class="ph-meta">
+      <span><%- icon('mail') %><%= user.email %></span>
+      <% if (user.occupation) { %><span><%- icon('briefcase') %><%= user.occupation %></span><% } %>
+      <span><%- icon('calendar') %>Conta criada em <%= formatDate(user.created_at) %></span>
+    </div>
+    <% if (user.bio) { %><p class="ph-bio"><%= user.bio %></p><% } %>
+  </div>
+</section>
+
+<div class="profile-grid">
+  <div class="profile-col">
+    <section class="panel" id="informacoes">
+      <div class="panel-head"><h3><span class="h-ic"><%- icon('user') %></span>Informações pessoais</h3></div>
+      <form method="post" action="/profile" class="panel-form" novalidate data-profile-info data-current-email="<%= user.email %>">
+        <div class="field <%= hasErr('name') %>"><label for="p-name"><%- icon('user') %>Nome</label><input id="p-name" name="name" maxlength="100" autocomplete="name" value="<%= info.name %>" required <%- invalid('name') %>><%- fieldError('name') %></div>
+        <div class="field <%= hasErr('email') %>"><label for="p-email"><%- icon('mail') %>E-mail</label><input id="p-email" name="email" type="email" maxlength="255" autocomplete="email" value="<%= info.email %>" required <%- invalid('email') %>><%- fieldError('email') %></div>
+        <div class="field <%= hasErr('info_password') %>" data-info-password <%= showInfoPassword ? '' : 'hidden' %>><label for="p-info-password"><%- icon('lock') %>Senha atual</label><div class="pw-wrap"><input id="p-info-password" name="current_password" type="password" autocomplete="current-password" placeholder="Necessária para alterar o e-mail" <%- invalid('info_password') %>><button type="button" data-show-password>Mostrar</button></div><%- fieldError('info_password') %></div>
+        <div class="field <%= hasErr('occupation') %>"><label for="p-occupation"><%- icon('briefcase') %>Ocupação ou área de atuação</label><input id="p-occupation" name="occupation" maxlength="100" list="occupationOptions" value="<%= info.occupation %>" placeholder="Ex: Estudante de Design" <%- invalid('occupation') %>><datalist id="occupationOptions"><% occupations.forEach(o => { %><option value="<%= o %>"><% }) %></datalist><%- fieldError('occupation') %></div>
+        <div class="field <%= hasErr('bio') %>"><label for="p-bio"><%- icon('pencil') %>Biografia</label><textarea id="p-bio" name="bio" maxlength="280" rows="3" placeholder="Uma breve descrição sobre você" data-counter <%- invalid('bio') %>><%= info.bio %></textarea><div class="field-hint"><span data-counter-value><%= String(info.bio || '').length %></span>/280</div><%- fieldError('bio') %></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Salvando..."><%- icon('check','sm') %>Salvar alterações</button></div>
+      </form>
+    </section>
+
+    <section class="panel" id="seguranca">
+      <div class="panel-head"><h3><span class="h-ic lilac"><%- icon('shield') %></span>Segurança</h3></div>
+      <form method="post" action="/profile/password" class="panel-form" novalidate data-password-form>
+        <input class="sr-only" type="email" autocomplete="username" value="<%= user.email %>" tabindex="-1" aria-hidden="true" readonly>
+        <div class="field <%= hasErr('current_password') %>"><label for="p-current"><%- icon('lock') %>Senha atual</label><div class="pw-wrap"><input id="p-current" name="current_password" type="password" autocomplete="current-password" required <%- invalid('current_password') %>><button type="button" data-show-password>Mostrar</button></div><%- fieldError('current_password') %></div>
+        <div class="field <%= hasErr('new_password') %>"><label for="p-new"><%- icon('lock') %>Nova senha</label><div class="pw-wrap"><input id="p-new" name="new_password" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required <%- invalid('new_password') %>><button type="button" data-show-password>Mostrar</button></div><%- fieldError('new_password') %></div>
+        <div class="field <%= hasErr('new_password_confirmation') %>"><label for="p-confirm"><%- icon('check-circle') %>Confirmar nova senha</label><div class="pw-wrap"><input id="p-confirm" name="new_password_confirmation" type="password" minlength="8" maxlength="72" autocomplete="new-password" required <%- invalid('new_password_confirmation') %>><button type="button" data-show-password>Mostrar</button></div><%- fieldError('new_password_confirmation') %></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Alterando..."><%- icon('lock','sm') %>Alterar senha</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="profile-col">
+    <section class="panel" id="foto">
+      <div class="panel-head"><h3><span class="h-ic sky"><%- icon('image') %></span>Foto de perfil</h3></div>
+      <form method="post" action="/profile/avatar" enctype="multipart/form-data" class="photo-form" data-image-form>
+        <div class="photo-row">
+          <div data-image-preview><%- avatar(user, 'avatar-lg') %></div>
+          <div class="photo-actions">
+            <label class="btn btn-ghost btn-sm" for="p-avatar"><%- icon('image','sm') %>Escolher imagem</label>
+            <input class="sr-only" id="p-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/webp" data-image-input <%- invalid('avatar') %>>
+            <div class="field-hint">JPG, PNG ou WEBP, até 2 MB.</div>
+          </div>
+        </div>
+        <div data-image-error><%- fieldError('avatar') %></div>
+        <div class="form-actions">
+          <button class="btn btn-primary btn-sm" type="submit" data-image-save disabled data-loading-text="Enviando..."><%- icon('check','sm') %>Salvar foto</button>
+          <% if (user.avatar_path) { %><button class="btn btn-danger btn-sm" type="submit" form="removeAvatarForm"><%- icon('trash','sm') %>Remover foto</button><% } %>
+        </div>
+      </form>
+      <form method="post" action="/profile/avatar/remove" id="removeAvatarForm" hidden></form>
+    </section>
+
+    <section class="panel" id="preferencias">
+      <div class="panel-head"><h3><span class="h-ic"><%- icon('settings') %></span>Preferências</h3></div>
+      <form method="post" action="/profile/preferences" class="panel-form">
+        <div class="field"><label for="p-main-use"><%- icon('target') %>Principal utilização</label><select id="p-main-use" name="main_use"><option value="">Não informada</option><% Object.entries(mainUses).forEach(([value, label]) => { %><option value="<%= value %>" <%= preferences.mainUse === value ? 'selected' : '' %>><%= label %></option><% }) %></select></div>
+        <div class="field">
+          <span class="field-label" id="lbl-p-features"><%- icon('list') %>Recursos exibidos</span>
+          <div class="chips" role="group" aria-labelledby="lbl-p-features">
+            <% Object.entries(featureOptions).forEach(([value, label]) => { %><label class="chip"><input type="checkbox" name="features" value="<%= value %>" <%= preferences.features.includes(value) ? 'checked' : '' %>><span><%= label %></span></label><% }) %>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label"><%- icon('bell') %>Notificações</span>
+          <label class="check-row"><input type="checkbox" name="notify_overdue" value="1" <%= preferences.notifyOverdue ? 'checked' : '' %>><span><b>Tarefas atrasadas</b><small>Mostra a quantidade de tarefas atrasadas no menu lateral.</small></span></label>
+          <label class="check-row"><input type="checkbox" name="notify_due_today" value="1" <%= preferences.notifyDueToday ? 'checked' : '' %>><span><b>Prazos do dia</b><small>Mostra um aviso no painel ao entrar quando houver tarefas com prazo para hoje.</small></span></label>
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Salvando..."><%- icon('check','sm') %>Salvar preferências</button></div>
+      </form>
+    </section>
+  </div>
+</div>
+<%- include('partials/app-end') %>

@@ -49,6 +49,34 @@ npm start
 http://localhost:3000
 ```
 
+## Atualizacoes do banco (migracoes)
+
+Ao rodar `npm start`, o servidor aplica automaticamente as migracoes pendentes
+(`config/migrations.js`). Elas sao incrementais e nao apagam nada: contas, tarefas
+e categorias existentes sao mantidas. Cada migracao roda uma unica vez e fica
+registrada na tabela `schema_migrations`.
+
+Para aplicar manualmente, sem subir o servidor:
+
+```bash
+npm run migrate
+```
+
+Se o banco ja estiver importado, **nao e preciso importar o `database.sql` de novo**
+(ele recria o banco do zero).
+
+## Cadastro, perfil e equipes
+
+- **Cadastro em etapas** (`/register`): escolha entre *Uso pessoal* e *Equipe ou empresa*,
+  dados da conta, personalizacao (opcional) ou dados da equipe, e confirmacao.
+- **Meu perfil** (`/profile`, pelo menu do usuario): nome, e-mail, ocupacao, biografia,
+  foto de perfil (JPG, PNG ou WEBP ate 2 MB), preferencias, notificacoes e troca de senha.
+- **Equipe** (`/workspaces/:id`): dados, imagem e informacoes da equipe. Somente
+  proprietario ou administrador pode editar.
+- Toda conta tem um ambiente **Pessoal**. Quem cria uma equipe alterna entre os ambientes
+  pelo seletor na barra lateral, com a mesma conta. As tarefas ficam separadas por ambiente.
+- As imagens enviadas ficam em `uploads/` (fora do Git).
+
 ## Login inicial
 
 ```text

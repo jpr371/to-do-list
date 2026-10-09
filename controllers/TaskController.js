@@ -24,11 +24,11 @@ export default class TaskController {
       view: req.query.view === 'category' ? 'category' : 'list'
     };
     const [tasks, categories] = await Promise.all([
-      TaskModel.list(req.session.user.id, filters),
-      TaskModel.categories(req.session.user.id)
+      TaskModel.list(req.scope, filters),
+      TaskModel.categories(req.scope)
     ]);
-    const detailTask = req.query.action === 'view' && req.query.id ? await TaskModel.findById(req.session.user.id, Number(req.query.id)) : null;
-    const editTask = req.query.action === 'edit' && req.query.id ? await TaskModel.findById(req.session.user.id, Number(req.query.id)) : null;
+    const detailTask = req.query.action === 'view' && req.query.id ? await TaskModel.findById(req.scope, Number(req.query.id)) : null;
+    const editTask = req.query.action === 'edit' && req.query.id ? await TaskModel.findById(req.scope, Number(req.query.id)) : null;
     const grouped = {};
     if (filters.view === 'category') {
       tasks.forEach(task => {
@@ -64,11 +64,11 @@ export default class TaskController {
       }
       const id = Number(req.body.id || 0);
       if (id > 0) {
-        await TaskModel.update(userId, id, data);
+        await TaskModel.update(req.scope, id, data);
         await ActivityModel.create(userId, `Tarefa atualizada: ${data.title}`);
         flash(req, 'success', 'Tarefa atualizada.');
       } else {
-        await TaskModel.create(userId, data);
+        await TaskModel.create(req.scope, data);
         await ActivityModel.create(userId, `Tarefa criada: ${data.title}`);
         flash(req, 'success', 'Tarefa criada.');
       }
@@ -76,9 +76,9 @@ export default class TaskController {
     }
 
     if (action === 'delete') {
-      const task = await TaskModel.findById(userId, Number(req.body.id || 0));
+      const task = await TaskModel.findById(req.scope, Number(req.body.id || 0));
       if (task) {
-        await TaskModel.delete(userId, task.id);
+        await TaskModel.delete(req.scope, task.id);
         await ActivityModel.create(userId, `Tarefa excluída: ${task.title}`);
         flash(req, 'success', 'Tarefa excluída.');
       }
@@ -86,9 +86,9 @@ export default class TaskController {
     }
 
     if (action === 'reopen') {
-      const task = await TaskModel.findById(userId, Number(req.body.id || 0));
+      const task = await TaskModel.findById(req.scope, Number(req.body.id || 0));
       if (task && task.status === 'done') {
-        await TaskModel.setStatus(userId, task.id, 'pending');
+        await TaskModel.setStatus(req.scope, task.id, 'pending');
         await ActivityModel.create(userId, `Tarefa reaberta: ${task.title}`);
         flash(req, 'success', 'Tarefa reaberta.');
       }
@@ -98,7 +98,7 @@ export default class TaskController {
     if (action === 'bulk_status') {
       const ids = [req.body.ids].flat().filter(Boolean).map(Number).filter(Boolean);
       const status = validStatus(req.body.bulk_status);
-      const count = await TaskModel.bulkStatus(userId, ids, status);
+      const count = await TaskModel.bulkStatus(req.scope, ids, status);
       flash(req, 'success', `${count} tarefa(s) atualizada(s).`);
       return res.redirect('/tasks');
     }
@@ -110,9 +110,9 @@ export default class TaskController {
     const userId = req.session.user.id;
     const id = Number(req.body.id || 0);
     const status = validStatus(req.body.status);
-    const task = await TaskModel.findById(userId, id);
+    const task = await TaskModel.findById(req.scope, id);
     if (!task) return res.status(404).json({ ok: false });
-    await TaskModel.setStatus(userId, id, status);
+    await TaskModel.setStatus(req.scope, id, status);
     await ActivityModel.create(userId, `Status atualizado: ${task.title}`);
     res.json({ ok: true });
   }
