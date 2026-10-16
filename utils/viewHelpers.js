@@ -1,3 +1,7 @@
+import { roleLabels } from '../services/permissions.js';
+
+export { roleLabels };
+
 export const statuses = {
   inbox: 'Caixa de entrada',
   pending: 'Pendente',
@@ -51,6 +55,8 @@ export const teamPurposes = {
   deadlines: 'Acompanhar prazos e entregas',
   other: 'Outros'
 };
+
+export const inviteDurations = { 1: '1 dia', 3: '3 dias', 7: '7 dias', 30: '30 dias' };
 
 export function validStatus(value) {
   return statuses[value] ? value : 'inbox';
@@ -156,6 +162,10 @@ export function icon(name, extra = '') {
     image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>',
     'arrow-left': '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+    'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    crown: '<path d="M2 18h20"/><path d="M3 18 2 7l5.5 4L12 4l4.5 7L22 7l-1 11"/>',
     bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
   };
   return `<svg class="icon${extra ? ` ${esc(extra)}` : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.inbox}</svg>`;
@@ -197,6 +207,18 @@ export function statusPill(status) {
 
 export function priorityPill(priority) {
   return `<span class="pill pri ${esc(priority)}">${icon(priority === 'urgent' ? 'zap' : 'flag', 'xs')}${esc(priorities[priority] || priority)}</span>`;
+}
+
+export function rolePill(role) {
+  const label = roleLabels[role] || roleLabels.member;
+  const ic = role === 'owner' ? 'crown' : (role === 'admin' ? 'shield' : 'user');
+  return `<span class="pill role ${esc(role)}">${icon(ic, 'xs')}${esc(label)}</span>`;
+}
+
+// Responsável de uma tarefa com avatar.
+export function assigneeChip(task) {
+  if (!task?.assignee_id) return '<span class="who none">Sem responsável</span>';
+  return `<span class="who">${avatar({ name: task.assignee_name, avatar_path: task.assignee_avatar }, 'avatar-sm')}<span>${esc(task.assignee_name)}</span></span>`;
 }
 
 export function catColor(name = '') {
@@ -246,6 +268,10 @@ export function templateLocals(req) {
     teamTypes,
     teamSizes,
     teamPurposes,
+    roleLabels,
+    rolePill,
+    assigneeChip,
+    inviteDurations,
     query: req.query
   };
 }

@@ -44,6 +44,51 @@ async function addColumn(conn, table, column, definition) {
 
 const migrations = [
   {
+    // Estrutura original do database.sql, para que um banco vazio também possa ser montado só pelas migrações.
+    id: '2026_10_01_000_base_schema',
+    async up(conn) {
+      await conn.query(`CREATE TABLE IF NOT EXISTS users (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        username VARCHAR(50) NOT NULL,
+        email VARCHAR(255) NULL,
+        name VARCHAR(100) NOT NULL,
+        profile VARCHAR(100) NOT NULL DEFAULT 'Freelancer / Criador',
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_users_username (username),
+        UNIQUE KEY uq_users_email (email)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      await conn.query(`CREATE TABLE IF NOT EXISTS tasks (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        title VARCHAR(120) NOT NULL,
+        description TEXT NULL,
+        category VARCHAR(60) NULL,
+        status ENUM('inbox','pending','progress','review','done') NOT NULL DEFAULT 'inbox',
+        priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
+        due_date DATE NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_tasks_user_status (user_id, status),
+        KEY idx_tasks_user_due (user_id, due_date),
+        KEY idx_tasks_user_category (user_id, category),
+        KEY idx_tasks_user_updated (user_id, updated_at),
+        CONSTRAINT fk_tasks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      await conn.query(`CREATE TABLE IF NOT EXISTS task_activity (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        message VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_activity_user_created (user_id, created_at),
+        CONSTRAINT fk_activity_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    }
+  },
+  {
     id: '2026_10_09_001_profiles_workspaces',
     async up(conn) {
       await addColumn(conn, 'users', 'account_type', "ENUM('personal','team') NOT NULL DEFAULT 'personal' AFTER profile");
@@ -129,6 +174,71 @@ const migrations = [
         JOIN workspace_members m ON m.workspace_id = w.id AND m.user_id = p.user_id
         SET p.active_workspace_id = w.id
         WHERE p.active_workspace_id IS NULL`);
+    }
+  },
+  {
+    id: '2026_10_16_003_collaboration',
+    async up(conn) {
+      // Convites: somente o hash SHA-256 do token fica no banco.
+      await conn.query(`CREATE TABLE IF NOT EXISTS workspace_invites (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        workspace_id INT UNSIGNED NOT NULL,
+        invited_email VARCHAR(255) NULL,
+        invited_role ENUM('admin','member') NOT NULL DEFAULT 'member',
+        token_hash CHAR(64) NOT NULL,
+        created_by INT UNSIGNED NULL,
+        expires_at DATETIME NOT NULL,
+        accepted_at DATETIME NULL DEFAULT NULL,
+        accepted_by INT UNSIGNED NULL,
+        declined_at DATETIME NULL DEFAULT NULL,
+        revoked_at DATETIME NULL DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_invites_token (token_hash),
+        KEY idx_invites_workspace (workspace_id, accepted_at, revoked_at),
+        KEY idx_invites_email (invited_email),
+        KEY idx_invites_created_by (created_by),
+        KEY idx_invites_accepted_by (accepted_by),
+        CONSTRAINT fk_invites_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+        CONSTRAINT fk_invites_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+        CONSTRAINT fk_invites_accepted_by FOREIGN KEY (accepted_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+      // Responsáveis: a FK composta para workspace_members garante que só integrantes
+      // do Workspace recebam a tarefa e remove a atribuição quando o integrante sai.
+      await conn.query(`CREATE TABLE IF NOT EXISTS task_assignees (
+        task_id BIGINT UNSIGNED NOT NULL,
+        workspace_id INT UNSIGNED NOT NULL,
+        user_id INT UNSIGNED NOT NULL,
+        assigned_by INT UNSIGNED NULL,
+        assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (task_id, user_id),
+        KEY idx_assignees_member (workspace_id, user_id),
+        KEY idx_assignees_user (user_id),
+        KEY idx_assignees_by (assigned_by),
+        CONSTRAINT fk_assignees_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+        CONSTRAINT fk_assignees_member FOREIGN KEY (workspace_id, user_id) REFERENCES workspace_members(workspace_id, user_id) ON DELETE CASCADE,
+        CONSTRAINT fk_assignees_by FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+      await addColumn(conn, 'tasks', 'completed_at', 'DATETIME NULL DEFAULT NULL AFTER due_date');
+      // updated_at = updated_at evita que o ON UPDATE altere a data das tarefas antigas.
+      await conn.query("UPDATE tasks SET completed_at = updated_at, updated_at = updated_at WHERE status = 'done' AND completed_at IS NULL");
+      if (!(await indexExists(conn, 'tasks', 'idx_tasks_workspace_status'))) {
+        await conn.query('ALTER TABLE tasks ADD KEY idx_tasks_workspace_status (workspace_id, status, due_date)');
+      }
+
+      await addColumn(conn, 'task_activity', 'workspace_id', 'INT UNSIGNED NULL AFTER user_id');
+      if (!(await constraintExists(conn, 'task_activity', 'fk_activity_workspace'))) {
+        if (!(await indexExists(conn, 'task_activity', 'idx_activity_workspace_created'))) {
+          await conn.query('ALTER TABLE task_activity ADD KEY idx_activity_workspace_created (workspace_id, created_at)');
+        }
+        await conn.query('ALTER TABLE task_activity ADD CONSTRAINT fk_activity_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE');
+      }
+
+      // Workspaces de equipe antigos: garante que o dono conste como proprietário.
+      await conn.query(`INSERT IGNORE INTO workspace_members (workspace_id, user_id, role)
+        SELECT id, owner_id, 'owner' FROM workspaces WHERE kind = 'team'`);
     }
   }
 ];

@@ -133,6 +133,52 @@
   document.querySelector('[data-delete-account-cancel]')?.addEventListener('click', () => deleteAccountOverlay?.classList.remove('show'));
   deleteAccountOverlay?.addEventListener('click', e => { if (e.target === deleteAccountOverlay) deleteAccountOverlay.classList.remove('show'); });
 
+  // Confirmação de ações da equipe: formulários com data-confirm abrem o diálogo
+  // antes de enviar. data-confirm-when="campo=valor" limita a confirmação a esse valor.
+  const confirmOverlay = document.getElementById('overlayConfirm');
+  let confirmForm = null;
+  document.querySelectorAll('form[data-confirm]').forEach(form => {
+    form.addEventListener('submit', e => {
+      if (!confirmOverlay || form.dataset.confirmed === '1') return;
+      const when = form.dataset.confirmWhen;
+      if (when) {
+        const [name, value] = when.split('=');
+        if (form.elements[name]?.value !== value) return;
+      }
+      e.preventDefault();
+      confirmForm = form;
+      confirmOverlay.querySelector('[data-confirm-title-out]').textContent = form.dataset.confirmTitle || 'Confirmar ação?';
+      confirmOverlay.querySelector('[data-confirm-text-out]').textContent = form.dataset.confirmText || '';
+      confirmOverlay.querySelector('[data-confirm-accept]').textContent = form.dataset.confirmOk || 'Confirmar';
+      confirmOverlay.classList.add('show');
+      confirmOverlay.querySelector('[data-confirm-dismiss]')?.focus();
+    });
+  });
+  const closeConfirm = () => { confirmOverlay?.classList.remove('show'); confirmForm = null; };
+  confirmOverlay?.querySelector('[data-confirm-dismiss]')?.addEventListener('click', closeConfirm);
+  confirmOverlay?.addEventListener('click', e => { if (e.target === confirmOverlay) closeConfirm(); });
+  confirmOverlay?.querySelector('[data-confirm-accept]')?.addEventListener('click', () => {
+    if (!confirmForm) return;
+    confirmForm.dataset.confirmed = '1';
+    const form = confirmForm;
+    closeConfirm();
+    form.requestSubmit ? form.requestSubmit() : form.submit();
+  });
+
+  // Copiar link de convite
+  document.querySelectorAll('[data-copy-box]').forEach(box => {
+    const input = box.querySelector('[data-copy-source]');
+    box.querySelector('[data-copy]')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(input.value);
+      } catch (err) {
+        input.select();
+        document.execCommand?.('copy');
+      }
+      toast('Link copiado.');
+    });
+  });
+
   // Painéis laterais: fechar com clique fora ou Esc
   document.querySelectorAll('.overlay[data-close-href]').forEach(ov => {
     ov.addEventListener('click', e => { if (e.target === ov) location.href = ov.dataset.closeHref; });
@@ -141,6 +187,7 @@
     if (e.key !== 'Escape') return;
     if (deleteOverlay?.classList.contains('show')) { deleteOverlay.classList.remove('show'); return; }
     if (deleteAccountOverlay?.classList.contains('show')) { deleteAccountOverlay.classList.remove('show'); return; }
+    if (confirmOverlay?.classList.contains('show')) { closeConfirm(); return; }
     if (wsMenu && !wsMenu.classList.contains('hidden')) { wsMenu.classList.add('hidden'); wsToggle?.setAttribute('aria-expanded', 'false'); wsToggle?.focus(); return; }
     if (profileMenu && !profileMenu.classList.contains('hidden')) { profileMenu.classList.add('hidden'); return; }
     if (sidebar?.classList.contains('open')) { sidebar.classList.remove('open'); return; }

@@ -34,7 +34,7 @@ DB_USER=root
 DB_PASS=
 ```
 
-Para ambiente local novo, importe `database.sql` pelo phpMyAdmin ou pelo cliente MySQL. Esse arquivo recria o banco `taskflow_lite` do zero, entao nao use em um banco que ja contenha dados importantes.
+Para ambiente local novo, importe `database.sql` pelo phpMyAdmin ou pelo cliente MySQL. O arquivo nao apaga nada: cria o banco e as tabelas apenas se nao existirem e insere a conta de demonstracao somente quando o banco ainda nao tem usuarios. Um banco vazio tambem pode ser montado apenas com `npm run migrate`.
 
 Depois da importacao inicial, use as migracoes incrementais:
 
@@ -93,7 +93,41 @@ Tambem e possivel criar uma conta nova em `/register`.
 - Seletor de Workspace na barra lateral quando o usuario tem mais de um ambiente.
 - Tarefas isoladas por Workspace ativo.
 - Migracao de contas antigas para Workspace pessoal sem apagar tarefas.
-- Edicao de dados e imagem da equipe por proprietario ou administrador.
+- Edicao de dados e imagem da equipe pelo proprietario.
+
+## Colaboracao em equipe
+
+- **Convites** (`/workspaces/:id`, painel *Convidar integrante*): por link ou vinculados a um e-mail, com cargo inicial e validade (1, 3, 7 ou 30 dias). Cada convite vale uma vez; o banco guarda so o hash SHA-256 do token e o link aparece uma unica vez para quem o criou. Convites por e-mail tambem aparecem no painel do destinatario. O sistema nao envia e-mails: o link deve ser repassado pela equipe.
+- **Fluxo do convidado** (`/invite/:token`): quem nao esta logado vai para o login ou cadastro e volta ao convite depois; aceitar adiciona o usuario a equipe e ativa o Workspace no seletor lateral.
+- **Integrantes e cargos**: lista com avatar, e-mail, cargo e tarefas em aberto; promocao/rebaixamento, transferencia de propriedade, remocao e saida da equipe, sempre com confirmacao.
+- **Responsaveis**: tarefas da equipe podem ter um responsavel (tabela `task_assignees`, ja preparada para varios), com filtro por integrante e *Atribuidas a mim* na lista, no Kanban e no Dashboard.
+- **Dashboard da equipe**: total, pendentes, em andamento, concluidas, atrasadas, atribuidas a mim, progresso, distribuicao por integrante, resumo de 7 dias e atividade com autor, com filtros por responsavel e status. O modo pessoal mantem o Dashboard individual.
+
+### Cargos
+
+| Acao | Proprietario | Administrador | Membro |
+|---|---|---|---|
+| Ver tarefas e integrantes da equipe | sim | sim | sim |
+| Criar tarefas | sim | sim | sim (responsavel: ele mesmo ou ninguem) |
+| Editar/excluir qualquer tarefa e atribuir a qualquer integrante | sim | sim | apenas as que criou |
+| Atualizar status | sim | sim | tarefas que criou ou pelas quais e responsavel |
+| Convidar | membros e administradores | membros | nao |
+| Remover integrantes | administradores e membros | membros | nao |
+| Alterar cargos / transferir propriedade | sim | nao | nao |
+| Configuracoes da equipe (nome, imagem) | sim | nao | nao |
+| Sair da equipe | apos transferir a propriedade | sim | sim |
+
+As regras ficam em `services/permissions.js` e sao aplicadas no backend (`middlewares/workspace.js` e controllers). O proprietario nunca pode ser removido; integrantes removidos perdem o acesso imediatamente e suas atribuicoes sao desfeitas. Convites deixam de valer se quem os criou perder a permissao de conceder aquele cargo.
+
+## Testes automatizados
+
+Os testes de integracao sobem o servidor real contra um banco de testes e percorrem por HTTP os fluxos de convite, cargos, atribuicao, isolamento entre equipes, Dashboard, avatar e login/logout com varias contas:
+
+```bash
+TEST_DB_NAME=taskflow_test TEST_DB_PORT=3306 npm test
+```
+
+O banco informado e apagado e recriado a cada execucao; por seguranca, o nome precisa terminar em `_test`. Variaveis opcionais: `TEST_DB_HOST`, `TEST_DB_USER`, `TEST_DB_PASS`, `TEST_PORT`.
 
 ## Roteiro de teste manual
 
@@ -126,10 +160,18 @@ Tambem e possivel criar uma conta nova em `/register`.
 5. Permissoes:
    - A pagina `/profile` sempre usa o usuario da sessao; nao ha id de usuario no formulario.
    - A pagina `/workspaces/:id` so abre para membros.
-   - A edicao de equipe exige papel `owner` ou `admin` no backend.
+   - A edicao de equipe exige o papel `owner` no backend.
+
+6. Colaboracao:
+   - Com uma conta de equipe, abra *Equipe* e gere um convite.
+   - Abra o link em uma janela anonima, crie uma conta e aceite.
+   - Atribua uma tarefa ao novo integrante, entre com ele e altere o status.
+   - Confira o Dashboard da equipe na conta do proprietario.
 
 ## Observacoes de seguranca
 
 - Nao versione `.env`, `uploads/`, `node_modules/`, logs ou dumps com dados reais.
 - Uploads sao validados pela assinatura do arquivo, nao apenas pela extensao.
-- As migracoes sao nao destrutivas; evite executar `database.sql` sobre bancos com dados reais.
+- As migracoes e o `database.sql` sao nao destrutivos.
+- Tokens de convite nao aparecem no log de requisicoes.
+- Defina `APP_URL` no `.env` se os links de convite precisarem usar um endereco diferente do acessado pelo navegador.

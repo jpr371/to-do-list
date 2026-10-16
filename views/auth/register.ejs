@@ -35,6 +35,7 @@
           <span class="steps-label">Etapa <b data-step-num><%= step %></b> de 4</span>
           <div class="steps-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
         </div>
+        <% if (locals.invite) { %><div class="auth-banner notice-banner"><%- icon('users','sm') %><span>Depois de criar a conta, você confirma o convite para <b><%= invite.workspace_name %></b>.</span></div><% } %>
         <% if (hasErrors) { %><div class="auth-banner"><%- icon('alert','sm') %>Revise os campos destacados.</div><% } %>
         <form class="auth-card register-form" method="post" action="/register" autocomplete="on" novalidate data-register data-start-step="<%= step %>">
 

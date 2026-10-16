@@ -1,8 +1,29 @@
 <%- include('partials/app-start', { pageTitle, activePage }) %>
-<% const pendingCount = Number(counts.pending_count || 0); const progressCount = Number(counts.progress_count || 0); const doneCount = Number(counts.done_count || 0); const lateCount = Number(counts.late_count || 0); const todayCount = Number(counts.today_count || 0); const totalCount = pendingCount + progressCount + doneCount; const donePct = totalCount ? Math.round(doneCount / totalCount * 100) : 0; const firstName = String(user?.name || '').split(/\s+/)[0] || ''; const features = preferences.features; %>
+<% const pendingCount = Number(counts.pending_count || 0); const progressCount = Number(counts.progress_count || 0); const doneCount = Number(counts.done_count || 0); const lateCount = Number(counts.late_count || 0); const todayCount = Number(counts.today_count || 0); const totalCount = pendingCount + progressCount + doneCount; const donePct = totalCount ? Math.round(doneCount / totalCount * 100) : 0; const firstName = String(user?.name || '').split(/\s+/)[0] || ''; const features = preferences.features; const mineCount = Number(counts.mine_count || 0); const filterQs = team ? new URLSearchParams(Object.entries({ assignee: filters.assignee || '' }).filter(([, v]) => v)).toString() : ''; const withFilter = href => filterQs ? `${href}${href.includes('?') ? '&' : '?'}${filterQs}` : href; %>
 <% if (showDueNotice) { %><div class="auth-banner notice-banner"><%- icon('calendar','sm') %><span>Você tem <%= todayCount %> tarefa<%= todayCount === 1 ? '' : 's' %> com prazo para hoje. <a href="/tasks?due=today">Ver tarefas</a></span></div><% } %>
+<% if (receivedInvites.length) { %>
+<section class="panel invites-received">
+  <div class="panel-head"><h3><span class="h-ic sky"><%- icon('mail') %></span>Convites recebidos</h3><span class="pill"><%= receivedInvites.length %></span></div>
+  <% receivedInvites.forEach(inv => { %>
+  <div class="invite-row">
+    <%- avatar({ name: inv.workspace_name, logo_path: inv.workspace_logo }, 'avatar-md ws-logo') %>
+    <div class="ir-text"><div class="tt"><%= inv.workspace_name %></div><div class="meta"><%= inv.created_by_name ? `Convite de ${inv.created_by_name}` : 'Convite' %> · <%= roleLabels[inv.invited_role] %></div></div>
+    <form method="post" action="/invites/<%= inv.id %>/decline"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('x','sm') %>Recusar</button></form>
+    <form method="post" action="/invites/<%= inv.id %>/accept"><button class="btn btn-primary btn-sm" type="submit"><%- icon('check','sm') %>Aceitar</button></form>
+  </div>
+  <% }) %>
+</section>
+<% } %>
 <section class="hero">
   <div>
+    <% if (team) { %>
+    <div class="kicker"><%- icon('users') %><%= activeWorkspace.name %></div>
+    <h2>Olá<% if (firstName) { %>, <em><%= firstName %></em><% } %>.</h2>
+    <p>
+      <% if (totalCount === 0) { %>A equipe ainda não tem tarefas<%= filters.status || filters.assignee ? ' com estes filtros' : '' %>.
+      <% } else { %>A equipe tem <b><%= pendingCount + progressCount %> tarefa<%= pendingCount + progressCount === 1 ? '' : 's' %> em aberto</b><% if (lateCount > 0) { %>, <b><%= lateCount %> atrasada<%= lateCount === 1 ? '' : 's' %></b><% } %>. <% if (mineCount > 0) { %><b><%= mineCount %></b> <%= mineCount === 1 ? 'está atribuída' : 'estão atribuídas' %> a você.<% } else { %>Nenhuma tarefa em aberto está atribuída a você.<% } %><% } %>
+    </p>
+    <% } else { %>
     <div class="kicker"><%- icon('sun') %>Resumo do dia</div>
     <h2>Olá<% if (firstName) { %>, <em><%= firstName %></em><% } %>.</h2>
     <p>
@@ -11,6 +32,7 @@
       <% } else if (totalCount === 0) { %>Seu espaço está pronto. Crie sua primeira tarefa e comece a organizar o dia.
       <% } else { %>Tudo em dia por aqui. <b><%= pendingCount + progressCount %> tarefa<%= pendingCount + progressCount === 1 ? '' : 's' %></b> em aberto no momento.<% } %>
     </p>
+    <% } %>
     <div class="hero-actions">
       <a class="btn btn-primary btn-sm" href="/tasks?action=new"><%- icon('plus','sm') %>Nova tarefa</a>
       <% if (features.includes('kanban')) { %><a class="btn btn-ghost btn-sm" href="/kanban"><%- icon('kanban','sm') %>Abrir Kanban</a><% } %>
@@ -19,33 +41,73 @@
   <div class="stamp" style="--p:<%= donePct %>" title="<%= doneCount %> de <%= totalCount %> concluídas"><div class="stamp-v"><b><%= donePct %>%</b><span>feito</span></div></div>
 </section>
 
-<div class="stat-grid">
-  <a class="stat pending" href="/tasks?status=pending"><div class="st-top"><span class="st-ic"><%- icon('inbox') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= pendingCount %></div><div class="l">Pendentes</div></div></a>
-  <a class="stat progress" href="/tasks?status=progress"><div class="st-top"><span class="st-ic"><%- icon('activity') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= progressCount %></div><div class="l">Em andamento</div></div></a>
-  <a class="stat done" href="/tasks?status=done"><div class="st-top"><span class="st-ic"><%- icon('check-circle') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= doneCount %></div><div class="l">Concluídas</div></div></a>
-  <a class="stat late <%= lateCount > 0 ? 'has' : '' %>" href="/tasks?due=overdue"><div class="st-top"><span class="st-ic"><%- icon('alert') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= lateCount %></div><div class="l">Atrasadas</div></div></a>
+<% if (team) { %>
+<form class="toolbar" method="get" data-filters>
+  <label class="select-wrap"><%- icon('user') %><select class="select-sm <%= filters.assignee ? 'on' : '' %>" name="assignee" aria-label="Responsável"><option value="">Todos os responsáveis</option><option value="me" <%= filters.assignee === 'me' ? 'selected' : '' %>>Atribuídas a mim</option><option value="none" <%= filters.assignee === 'none' ? 'selected' : '' %>>Sem responsável</option><% members.forEach(m => { %><option value="<%= m.user_id %>" <%= filters.assignee === String(m.user_id) ? 'selected' : '' %>><%= m.name %></option><% }) %></select></label>
+  <label class="select-wrap"><%- icon('activity') %><select class="select-sm <%= filters.status ? 'on' : '' %>" name="status" aria-label="Status"><option value="">Todos os status</option><% Object.entries(statuses).forEach(([k,v]) => { %><option value="<%= k %>" <%= filters.status === k ? 'selected' : '' %>><%= v %></option><% }) %></select></label>
+  <button class="btn btn-ghost btn-sm" type="submit" data-filter-submit><%- icon('filter','sm') %>Filtrar</button>
+  <% if (filters.assignee || filters.status) { %><a class="btn btn-ghost btn-sm" href="/dashboard"><%- icon('x','sm') %>Limpar filtros</a><% } %>
+</form>
+<% } %>
+
+<div class="stat-grid <%= team ? 'six' : '' %>">
+  <% if (team) { %><a class="stat total" href="<%= withFilter('/tasks') %>"><div class="st-top"><span class="st-ic"><%- icon('list') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= Number(counts.total_count || 0) %></div><div class="l">Total de tarefas</div></div></a><% } %>
+  <a class="stat pending" href="<%= withFilter('/tasks?status=pending') %>"><div class="st-top"><span class="st-ic"><%- icon('inbox') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= pendingCount %></div><div class="l">Pendentes</div></div></a>
+  <a class="stat progress" href="<%= withFilter('/tasks?status=progress') %>"><div class="st-top"><span class="st-ic"><%- icon('activity') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= progressCount %></div><div class="l">Em andamento</div></div></a>
+  <a class="stat done" href="<%= withFilter('/tasks?status=done') %>"><div class="st-top"><span class="st-ic"><%- icon('check-circle') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= doneCount %></div><div class="l">Concluídas</div></div></a>
+  <a class="stat late <%= lateCount > 0 ? 'has' : '' %>" href="<%= withFilter('/tasks?due=overdue') %>"><div class="st-top"><span class="st-ic"><%- icon('alert') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= lateCount %></div><div class="l">Atrasadas</div></div></a>
+  <% if (team) { %><a class="stat mine" href="/tasks?assignee=me"><div class="st-top"><span class="st-ic"><%- icon('user') %></span><%- icon('arrow-right','sm st-go') %></div><div><div class="n"><%= mineCount %></div><div class="l">Atribuídas a mim</div></div></a><% } %>
 </div>
+
+<% if (team) { const maxTotal = Math.max(1, ...distribution.map(d => Number(d.total || 0))); %>
+<div class="grid-2 team-grid">
+  <section class="panel">
+    <div class="panel-head"><h3><span class="h-ic"><%- icon('users') %></span>Distribuição por integrante</h3><a class="panel-link" href="/workspaces/<%= activeWorkspace.id %>#integrantes">Equipe<%- icon('arrow-right') %></a></div>
+    <div class="dist-list">
+      <% distribution.forEach(d => { const total = Number(d.total || 0); const done = Number(d.done || 0); const pct = total ? Math.round(done / total * 100) : 0; %>
+      <a class="dist-row <%= filters.assignee === String(d.user_id) ? 'on' : '' %>" href="/dashboard?assignee=<%= d.user_id %><%= filters.status ? `&status=${filters.status}` : '' %>">
+        <%- avatar(d, 'avatar-sm') %>
+        <div class="dr-main">
+          <div class="dr-top"><span class="dr-name"><%= d.name %></span><%- rolePill(d.role) %><span class="dr-count"><%= done %>/<%= total %></span></div>
+          <div class="dist-bar" title="<%= pct %>% concluído"><i class="d-done" style="width:<%= total ? done / maxTotal * 100 : 0 %>%"></i><i class="d-progress" style="width:<%= Number(d.progress || 0) / maxTotal * 100 %>%"></i><i class="d-pending" style="width:<%= Number(d.pending || 0) / maxTotal * 100 %>%"></i></div>
+          <div class="dr-meta"><%= Number(d.pending || 0) %> pendente<%= Number(d.pending) === 1 ? '' : 's' %> · <%= Number(d.progress || 0) %> em andamento · <%= done %> concluída<%= done === 1 ? '' : 's' %><% if (Number(d.late) > 0) { %> · <span class="due-late"><%= d.late %> atrasada<%= Number(d.late) === 1 ? '' : 's' %></span><% } %></div>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <div class="dist-legend"><span><i class="d-done"></i>Concluídas</span><span><i class="d-progress"></i>Em andamento</span><span><i class="d-pending"></i>Pendentes</span></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h3><span class="h-ic sky"><%- icon('activity') %></span>Resumo de atividades</h3><span class="panel-link">7 dias</span></div>
+    <div class="kv"><span><%- icon('plus') %>Tarefas criadas</span><b><%= Number(counts.created_week_count || 0) %></b></div>
+    <div class="kv"><span><%- icon('check-circle') %>Tarefas concluídas</span><b><%= Number(counts.done_week_count || 0) %></b></div>
+    <div class="kv"><span><%- icon('user') %>Em aberto sem responsável</span><b><a href="/tasks?assignee=none"><%= Number(counts.unassigned_count || 0) %></a></b></div>
+    <div class="kv"><span><%- icon('target') %>Progresso da equipe</span><b><%= donePct %>%</b></div>
+    <div class="kv"><span><%- icon('users') %>Integrantes</span><b><%= members.length %></b></div>
+  </section>
+</div>
+<% } %>
 
 <div class="grid-2 <%= features.includes('deadlines') ? '' : 'single' %>">
   <section class="panel">
-    <div class="panel-head"><h3><span class="h-ic"><%- icon('target') %></span>Próximas ações</h3><a class="panel-link" href="/tasks">Ver todas<%- icon('arrow-right') %></a></div>
+    <div class="panel-head"><h3><span class="h-ic"><%- icon('target') %></span>Próximas ações</h3><a class="panel-link" href="<%= withFilter('/tasks') %>">Ver todas<%- icon('arrow-right') %></a></div>
     <% if (!next.length) { %><div class="panel-empty"><%- icon('check-circle') %>Nenhuma tarefa pendente. Crie uma nova tarefa para começar.</div><% } %>
     <% next.forEach(task => { const dc = dueClass(task.due_date, task.status); %>
       <a class="mini-task" href="/tasks?action=view&id=<%= task.id %>">
         <span class="pri-badge <%= task.priority %>"><%- icon(priorityIcon(task.priority)) %></span>
-        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %></div></div>
+        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %><% if (team) { %> · <%- icon('user') %><%= task.assignee_name || 'Sem responsável' %><% } %></div></div>
         <% if (task.due_date) { %><span class="when <%= dc === 'overdue' ? 'late' : (dc === 'today' ? 'today' : '') %>"><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>
       </a>
     <% }) %>
   </section>
   <% if (features.includes('deadlines')) { %>
   <section class="panel">
-    <div class="panel-head"><h3><span class="h-ic sky"><%- icon('calendar') %></span>Próximos prazos</h3><a class="panel-link" href="/tasks?due=upcoming">7 dias<%- icon('arrow-right') %></a></div>
+    <div class="panel-head"><h3><span class="h-ic sky"><%- icon('calendar') %></span>Próximos prazos</h3><a class="panel-link" href="<%= withFilter('/tasks?due=upcoming') %>">7 dias<%- icon('arrow-right') %></a></div>
     <% if (!upcoming.length) { %><div class="panel-empty"><%- icon('calendar') %>Sem prazos nos próximos 7 dias.</div><% } %>
     <% upcoming.forEach(task => { %>
       <a class="mini-task" href="/tasks?action=view&id=<%= task.id %>">
         <span class="date-chip"><span><%= monthShort(task.due_date) %></span><b><%= formatDate(task.due_date).slice(0,2) %></b></span>
-        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %></div></div>
+        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %><% if (team) { %> · <%- icon('user') %><%= task.assignee_name || 'Sem responsável' %><% } %></div></div>
       </a>
     <% }) %>
   </section>
@@ -56,7 +118,7 @@
   <div class="panel-head"><h3><span class="h-ic lilac"><%- icon('clock') %></span>Atividade recente</h3></div>
   <% if (!activities.length) { %><div class="panel-empty"><%- icon('activity') %>Nenhuma atividade recente.</div><% } %>
   <div class="timeline">
-    <% activities.forEach(activity => { %><div class="act-item"><div class="dot2"><%- icon('check') %></div><div><b><%= activity.message %></b><span class="ago"><%= relativeTime(activity.created_at) %></span></div></div><% }) %>
+    <% activities.forEach(activity => { %><div class="act-item"><div class="dot2"><%- icon('check') %></div><div><b><%= activity.message %></b><span class="ago"><% if (team && activity.user_name) { %><%= activity.user_name %> · <% } %><%= relativeTime(activity.created_at) %></span></div></div><% }) %>
   </div>
 </section>
 <%- include('partials/app-end') %>

@@ -26,6 +26,7 @@
         <h2>Bem-vindo <em>de volta.</em></h2>
         <p class="sub">Entre para continuar de onde parou.</p>
         <% if (registered || flash?.success) { %><div class="auth-banner success-banner"><%- icon('check-circle','sm') %><%= flash?.success || 'Conta criada. Entre com seu e-mail e senha.' %></div><% } %>
+        <% if (locals.invite) { %><div class="auth-banner notice-banner"><%- icon('users','sm') %><span>Entre para aceitar o convite para <b><%= invite.workspace_name %></b>.</span></div><% } %>
         <% if (error) { %><div class="auth-banner"><%- icon('alert','sm') %><%= error %></div><% } %>
         <form class="auth-card" method="post" autocomplete="on">
           <div class="field"><label for="identifier"><%- icon('user') %>E-mail ou usuário</label><div class="input-ic"><%- icon('mail') %><input id="identifier" name="identifier" autocomplete="username" placeholder="voce@empresa.com" value="<%= old.identifier || '' %>" required autofocus></div></div>

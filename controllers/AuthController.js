@@ -3,6 +3,7 @@ import { pool } from '../config/database.js';
 import UserModel from '../models/UserModel.js';
 import WorkspaceModel from '../models/WorkspaceModel.js';
 import ActivityModel from '../models/ActivityModel.js';
+import InviteModel from '../models/InviteModel.js';
 import { clearFlash, flash, featureOptions, mainUses, occupations, teamPurposes, teamSizes, teamTypes } from '../utils/viewHelpers.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,10 +71,26 @@ async function validateRegistration(data) {
   return errors;
 }
 
+// Convite aberto antes do login/cadastro; sobrevive à troca de sessão.
+async function pendingInvite(req) {
+  const token = req.session.pendingInvite;
+  if (!token) return null;
+  const invite = await InviteModel.findByToken(token);
+  if (invite?.state === 'active') return invite;
+  delete req.session.pendingInvite;
+  return null;
+}
+
+function afterLogin(req) {
+  return req.session.pendingInvite ? `/invite/${encodeURIComponent(req.session.pendingInvite)}` : '/dashboard';
+}
+
 function startSession(req, sessionUser, workspaceId) {
+  const inviteToken = req.session.pendingInvite;
   return new Promise((resolve, reject) => {
     req.session.regenerate(err => {
       if (err) return reject(err);
+      if (inviteToken) req.session.pendingInvite = inviteToken;
       req.session.user = sessionUser;
       if (workspaceId) req.session.workspaceId = workspaceId;
       resolve();
@@ -82,9 +99,9 @@ function startSession(req, sessionUser, workspaceId) {
 }
 
 export default class AuthController {
-  static loginForm(req, res) {
+  static async loginForm(req, res) {
     const registered = req.query.registered === '1';
-    const data = { error: '', registered, old: {} };
+    const data = { error: '', registered, old: {}, invite: await pendingInvite(req) };
     clearFlash(req);
     res.render('auth/login', data);
   }
@@ -98,7 +115,8 @@ export default class AuthController {
       return res.status(422).render('auth/login', {
         error: 'Não foi possível entrar. Confira seu e-mail e senha e tente novamente.',
         registered: false,
-        old: { identifier }
+        old: { identifier },
+        invite: await pendingInvite(req)
       });
     }
     const [workspaces, preferences] = await Promise.all([
@@ -114,12 +132,13 @@ export default class AuthController {
       return res.status(500).send('Erro ao iniciar sessão.');
     }
     await ActivityModel.create(match.id, 'Login realizado');
-    res.redirect('/dashboard');
+    res.redirect(afterLogin(req));
   }
 
-  static registerForm(req, res) {
+  static async registerForm(req, res) {
     clearFlash(req);
-    res.render('auth/register', { errors: {}, old: { features: Object.keys(featureOptions) }, step: 1 });
+    const invite = await pendingInvite(req);
+    res.render('auth/register', { errors: {}, old: { features: Object.keys(featureOptions), email: invite?.invited_email || '' }, step: 1, invite });
   }
 
   static async checkEmail(req, res) {
@@ -139,6 +158,7 @@ export default class AuthController {
       return res.status(422).render('auth/register', {
         errors,
         step,
+        invite: await pendingInvite(req),
         old: {
           account_type: data.accountType, name: data.name, email: data.email,
           main_use: data.mainUse, occupation: data.occupation,
@@ -188,6 +208,7 @@ export default class AuthController {
         return res.status(422).render('auth/register', {
           errors: { email: 'Este e-mail já está em uso.' },
           step: 2,
+          invite: await pendingInvite(req),
           old: { account_type: data.accountType, name: data.name, email: data.email, features }
         });
       }
@@ -204,7 +225,7 @@ export default class AuthController {
       return res.redirect('/login?registered=1');
     }
     flash(req, 'success', 'Conta criada com sucesso.');
-    res.redirect('/dashboard');
+    res.redirect(afterLogin(req));
   }
 
   static logout(req, res) {

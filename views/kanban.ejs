@@ -1,14 +1,22 @@
 <%- include('partials/app-start', { pageTitle, activePage }) %>
+<% if (team) { %>
+<form class="toolbar" method="get" data-filters>
+  <label class="select-wrap"><%- icon('user') %><select class="select-sm <%= filters.assignee ? 'on' : '' %>" name="assignee" aria-label="Responsável"><option value="">Todos os responsáveis</option><option value="me" <%= filters.assignee === 'me' ? 'selected' : '' %>>Atribuídas a mim</option><option value="none" <%= filters.assignee === 'none' ? 'selected' : '' %>>Sem responsável</option><% members.forEach(m => { %><option value="<%= m.user_id %>" <%= filters.assignee === String(m.user_id) ? 'selected' : '' %>><%= m.name %></option><% }) %></select></label>
+  <button class="btn btn-ghost btn-sm" type="submit" data-filter-submit><%- icon('filter','sm') %>Filtrar</button>
+  <% if (filters.assignee) { %><a class="btn btn-ghost btn-sm" href="/kanban"><%- icon('x','sm') %>Limpar filtros</a><% } %>
+</form>
+<% } %>
 <div class="kanban" data-kanban data-csrf="">
   <% Object.entries(statuses).forEach(([status, label]) => { %>
     <section class="kcol" data-status="<%= status %>" data-label="<%= label %>">
       <h4><%- icon(statusIcon(status)) %><%= label %><span><%= groups[status]?.length || 0 %></span></h4>
       <div class="kcol-empty"><%- icon('inbox') %>Arraste tarefas para cá</div>
       <% (groups[status] || []).forEach(task => { const dc = dueClass(task.due_date, task.status); %>
-        <article class="kcard" draggable="true" data-id="<%= task.id %>" onclick="location.href='/tasks?action=view&id=<%= task.id %>'">
-          <div class="k-top"><%- priorityPill(task.priority) %><%- icon('grip','k-grip') %></div>
+        <article class="kcard <%= task.canMove ? '' : 'locked' %>" draggable="<%= task.canMove ? 'true' : 'false' %>" data-id="<%= task.id %>" onclick="location.href='/tasks?action=view&id=<%= task.id %>'">
+          <div class="k-top"><%- priorityPill(task.priority) %><% if (task.canMove) { %><%- icon('grip','k-grip') %><% } else { %><%- icon('lock','k-grip') %><% } %></div>
           <div class="tt"><%= task.title %></div>
           <% if (task.description) { %><p class="desc"><%= truncate(task.description, 85) %></p><% } %>
+          <% if (team) { %><div class="k-who"><%- assigneeChip(task) %></div><% } %>
           <div class="meta">
             <span><%- icon('tag') %><%= task.category || 'Sem categoria' %></span>
             <% if (task.due_date) { %><span class="k-due <%= dc === 'overdue' ? 'due-late' : (dc === 'today' ? 'due-today' : '') %>"><%- icon('calendar') %><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>

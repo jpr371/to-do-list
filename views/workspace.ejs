@@ -19,6 +19,89 @@
   </div>
 </section>
 
+<section class="panel members-panel" id="integrantes">
+  <div class="panel-head"><h3><span class="h-ic"><%- icon('users') %></span>Integrantes</h3><span class="pill"><%= members.length %></span></div>
+  <div class="member-list">
+    <% members.forEach(m => { const openTasks = Number(m.open_tasks || 0); %>
+    <div class="member-row">
+      <%- avatar(m, 'avatar-md') %>
+      <div class="mr-text">
+        <div class="mr-name"><%= m.name %><% if (m.isSelf) { %><span class="mr-you">você</span><% } %></div>
+        <div class="mr-mail"><%= m.email %></div>
+      </div>
+      <a class="mr-tasks" href="/tasks?assignee=<%= m.user_id %>" title="Tarefas em aberto atribuídas"><%- icon('list','xs') %><%= openTasks %> em aberto</a>
+      <%- rolePill(m.role) %>
+      <div class="mr-actions">
+        <% if (m.roleOptions.length) { %>
+        <form method="post" action="/workspaces/<%= workspace.id %>/members/<%= m.user_id %>/role" class="mr-role" data-confirm data-confirm-when="role=owner" data-confirm-title="Transferir a propriedade?" data-confirm-text="<%= m.name %> passará a ser o proprietário da equipe e você se tornará administrador." data-confirm-ok="Transferir">
+          <label class="select-wrap"><%- icon('shield') %><select class="select-sm" name="role" aria-label="Cargo de <%= m.name %>">
+            <% m.roleOptions.forEach(r => { %><option value="<%= r %>" <%= m.role === r ? 'selected' : '' %>><%= r === 'owner' ? 'Proprietário (transferir)' : roleLabels[r] %></option><% }) %>
+          </select></label>
+          <button class="btn btn-ghost btn-sm" type="submit"><%- icon('check','sm') %>Salvar</button>
+        </form>
+        <% } %>
+        <% if (m.canRemove) { %>
+        <form method="post" action="/workspaces/<%= workspace.id %>/members/<%= m.user_id %>/remove" data-confirm data-confirm-title="Remover integrante?" data-confirm-text="<%= m.name %> perderá o acesso à equipe e deixará de ser responsável pelas tarefas atribuídas." data-confirm-ok="Remover">
+          <button class="btn btn-danger btn-sm" type="submit"><%- icon('trash','sm') %>Remover</button>
+        </form>
+        <% } %>
+        <% if (m.isSelf && canLeave) { %>
+        <form method="post" action="/workspaces/<%= workspace.id %>/leave" data-confirm data-confirm-title="Sair da equipe?" data-confirm-text="Você perderá o acesso às tarefas de <%= workspace.name %>. Para voltar, será preciso um novo convite." data-confirm-ok="Sair">
+          <button class="btn btn-danger btn-sm" type="submit"><%- icon('logout','sm') %>Sair da equipe</button>
+        </form>
+        <% } %>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+  <% if (workspace.role === 'owner' && members.length === 1) { %><p class="field-hint">Convide pessoas para trabalhar com você nesta equipe.</p><% } %>
+</section>
+
+<% if (inviteRoles.length) { %>
+<div class="profile-grid invites-grid" id="convites">
+  <div class="profile-col">
+    <section class="panel">
+      <div class="panel-head"><h3><span class="h-ic sky"><%- icon('user-plus') %></span>Convidar integrante</h3></div>
+      <% if (inviteLink) { %>
+      <div class="invite-link" data-copy-box>
+        <div class="field-label"><%- icon('link') %>Link do convite<%= inviteLink.email ? ` para ${inviteLink.email}` : '' %></div>
+        <div class="copy-row"><input type="text" readonly value="<%= inviteLink.url %>" aria-label="Link do convite" data-copy-source><button class="btn btn-primary btn-sm" type="button" data-copy><%- icon('copy','sm') %>Copiar</button></div>
+        <div class="field-hint">Envie este link para a pessoa convidada. Ele não será exibido novamente.</div>
+      </div>
+      <% } %>
+      <form method="post" action="/workspaces/<%= workspace.id %>/invites" class="panel-form" novalidate>
+        <div class="field <%= hasErr('invite_email') %>"><label for="i-email"><%- icon('mail') %>E-mail <span class="opt-tag">Opcional</span></label><input id="i-email" name="email" type="email" maxlength="255" value="<%= inviteOld.email || '' %>" placeholder="pessoa@empresa.com" <%- invalid('invite_email') %>><%- fieldError('invite_email') %><div class="field-hint">Com e-mail, somente essa conta pode aceitar e o convite aparece no painel dela. Sem e-mail, o link vale para uma pessoa.</div></div>
+        <div class="two-col">
+          <div class="field"><label for="i-role"><%- icon('shield') %>Cargo</label><select id="i-role" name="role"><% inviteRoles.forEach(r => { %><option value="<%= r %>" <%= (inviteOld.role || 'member') === r ? 'selected' : '' %>><%= roleLabels[r] %></option><% }) %></select></div>
+          <div class="field"><label for="i-exp"><%- icon('clock') %>Validade</label><select id="i-exp" name="expires_in"><% Object.entries(inviteDurations).forEach(([days, label]) => { %><option value="<%= days %>" <%= (inviteOld.expires_in || '7') === days ? 'selected' : '' %>><%= label %></option><% }) %></select></div>
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Gerando..."><%- icon('link','sm') %>Gerar convite</button></div>
+      </form>
+    </section>
+  </div>
+  <div class="profile-col">
+    <section class="panel">
+      <div class="panel-head"><h3><span class="h-ic lilac"><%- icon('mail') %></span>Convites pendentes</h3><span class="pill"><%= invites.length %></span></div>
+      <% if (!invites.length) { %><div class="panel-empty"><%- icon('mail') %>Nenhum convite pendente.</div><% } %>
+      <% invites.forEach(inv => { const hours = Number(inv.hours_left || 0); %>
+      <div class="invite-row">
+        <span class="pri-badge"><%- icon(inv.invited_email ? 'mail' : 'link') %></span>
+        <div class="ir-text">
+          <div class="tt"><%= inv.invited_email || 'Link de convite' %></div>
+          <div class="meta"><%= roleLabels[inv.invited_role] %> · expira em <%= hours >= 24 ? `${Math.floor(hours / 24)} d` : `${Math.max(1, hours)} h` %><% if (inv.created_by_name) { %> · por <%= inv.created_by_name %><% } %></div>
+        </div>
+        <% if (inv.canRevoke) { %>
+        <form method="post" action="/workspaces/<%= workspace.id %>/invites/<%= inv.id %>/revoke" data-confirm data-confirm-title="Cancelar convite?" data-confirm-text="O link deixará de funcionar imediatamente." data-confirm-ok="Cancelar convite">
+          <button class="btn btn-ghost btn-sm" type="submit"><%- icon('x','sm') %>Cancelar</button>
+        </form>
+        <% } %>
+      </div>
+      <% }) %>
+    </section>
+  </div>
+</div>
+<% } %>
+
 <div class="profile-grid">
   <div class="profile-col">
     <section class="panel">
@@ -72,7 +155,9 @@
       <div class="kv"><span><%- icon('user') %>Proprietário</span><b><%= workspace.owner_name %></b></div>
       <div class="kv"><span><%- icon('users') %>Integrantes cadastrados</span><b><%= memberCount %></b></div>
       <div class="kv"><span><%- icon('calendar') %>Criada em</span><b><%= formatDate(workspace.created_at) %></b></div>
+      <div class="kv"><span><%- icon('shield') %>Seu cargo</span><b><%= roles[workspace.role] || 'Membro' %></b></div>
     </section>
   </div>
 </div>
+<%- include('partials/confirm') %>
 <%- include('partials/app-end') %>

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import UserModel from '../models/UserModel.js';
 import ActivityModel from '../models/ActivityModel.js';
 import WorkspaceModel from '../models/WorkspaceModel.js';
+import TaskModel from '../models/TaskModel.js';
 import { clearFlash, flash, featureOptions, mainUses } from '../utils/viewHelpers.js';
 import { removeImage, saveImage, validateImage } from '../utils/uploads.js';
 
@@ -133,6 +134,7 @@ export default class ProfileController {
     if (Object.keys(errors).length) return render(req, res, { status: 422, errors });
 
     const files = [user.avatar_path, ...(await WorkspaceModel.logoPathsOwnedBy(user.id))];
+    await TaskModel.handOverTeamTasks(user.id);
     await UserModel.delete(user.id);
     await Promise.all(files.map(removeImage));
 

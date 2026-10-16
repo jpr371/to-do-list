@@ -14,6 +14,8 @@ export function applyMiddlewares(app, rootDir) {
     contentSecurityPolicy: false
   }));
   app.use(compression());
+  // Tokens de convite não devem aparecer no log de requisições.
+  morgan.token('url', req => (req.originalUrl || req.url).replace(/\/invite\/[^/?#]+/, '/invite/[token]'));
   app.use(morgan('dev'));
   app.use(rateLimit({
     windowMs: 10 * 60 * 1000,
@@ -57,7 +59,7 @@ export async function requireAuth(req, res, next) {
     || workspaces[0];
   req.session.workspaceId = active.id;
   req.session.user = { id: user.id, username: user.username, email: user.email, name: user.name };
-  req.scope = { userId: user.id, workspaceId: active.id, personal: active.kind === 'personal' };
+  req.scope = { userId: user.id, workspaceId: active.id, personal: active.kind === 'personal', role: active.role };
 
   const overdue = preferences.notifyOverdue ? await TaskModel.dashboardCounts(req.scope) : null;
 
