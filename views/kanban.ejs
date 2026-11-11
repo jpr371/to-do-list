@@ -18,7 +18,7 @@
           <% if (task.description) { %><p class="desc"><%= truncate(task.description, 85) %></p><% } %>
           <% if (team) { %><div class="k-who"><%- assigneeChip(task) %></div><% } %>
           <div class="meta">
-            <span><%- icon('tag') %><%= task.category || 'Sem categoria' %></span>
+            <span><%- icon('tag') %><%= task.category_path || 'Sem categoria' %></span>
             <% if (task.due_date) { %><span class="k-due <%= dc === 'overdue' ? 'due-late' : (dc === 'today' ? 'due-today' : '') %>"><%- icon('calendar') %><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>
           </div>
         </article>

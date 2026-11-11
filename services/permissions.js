@@ -62,6 +62,13 @@ export function taskPermissions(scope, task) {
   };
 }
 
+// Categorias: qualquer integrante cria; renomear e excluir é de quem criou a categoria
+// ou de quem administra o Workspace (no ambiente pessoal, sempre o próprio usuário).
+export function canManageCategory(scope, category) {
+  if (scope.personal) return true;
+  return isManager(scope.role) || Number(category.created_by) === scope.userId;
+}
+
 // Membros comuns só podem assumir a tarefa ou deixá-la sem responsável;
 // a pertença ao Workspace é verificada à parte.
 export function canAssign(scope, assigneeId, currentAssigneeId = null) {

@@ -17,3 +17,15 @@ Este arquivo relaciona os itens exibidos como **Done** no GitHub Project com a v
 ## Definição de “próximas do prazo”
 
 Para deixar o comportamento objetivo e testável, o sistema considera **próximas do prazo** as tarefas não concluídas com vencimento entre hoje e os próximos 7 dias, inclusive.
+
+# Itens que estavam em Ready/Backlog — agora implementados
+
+| Item do backlog | Onde está no sistema |
+|---|---|
+| #17 Implementar criação de subcategorias (também #5) | `/categories` → *Subcategoria*; visão por categoria mostra a subcategoria recuada dentro da principal |
+| #3 CRUD de categorias | `/categories` → criar, renomear e excluir (tarefas não são apagadas) |
+| #6 Tarefas por categoria | `/tasks?view=category` e filtro de categoria (a principal inclui as subcategorias) |
+| #19 Movimentação de tarefas entre categorias | Arrastar, seletor da linha e *Mover para outra categoria* nos detalhes; só a categoria muda |
+| #20 Reordenação manual na categoria | Arrastar ou botões subir/descer; ordem salva em `tasks.position` e mantida entre sessões |
+| #14 / #15 Reabertura de tarefa concluída | Botão *Reabrir* nos detalhes da tarefa concluída (já existia) |
+| #21 Validar campos antes de prosseguir | Validação por etapa no cadastro (`assets/js/app.js`) e no servidor (já existia) |

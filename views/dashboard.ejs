@@ -95,8 +95,8 @@
     <% next.forEach(task => { const dc = dueClass(task.due_date, task.status); %>
       <a class="mini-task" href="/tasks?action=view&id=<%= task.id %>">
         <span class="pri-badge <%= task.priority %>"><%- icon(priorityIcon(task.priority)) %></span>
-        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %><% if (team) { %> · <%- icon('user') %><%= task.assignee_name || 'Sem responsável' %><% } %></div></div>
-        <% if (task.due_date) { %><span class="when <%= dc === 'overdue' ? 'late' : (dc === 'today' ? 'today' : '') %>"><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>
+        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category_path) { %> · <%- icon('tag') %><%= task.category_path %><% } %><% if (team) { %> · <%- icon('user') %><%= task.assignee_name || 'Sem responsável' %><% } %></div></div>
+<% if (task.due_date) { %><span class="when <%= dc === 'overdue' ? 'late' : (dc === 'today' ? 'today' : '') %>"><%= dc === 'today' ? 'Hoje' : formatDate(task.due_date).slice(0,5) %></span><% } %>
       </a>
     <% }) %>
   </section>
@@ -107,7 +107,7 @@
     <% upcoming.forEach(task => { %>
       <a class="mini-task" href="/tasks?action=view&id=<%= task.id %>">
         <span class="date-chip"><span><%= monthShort(task.due_date) %></span><b><%= formatDate(task.due_date).slice(0,2) %></b></span>
-        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category) { %> · <%- icon('tag') %><%= task.category %><% } %><% if (team) { %> · <%- icon('user') %><%= task.assignee_name || 'Sem responsável' %><% } %></div></div>
+        <div><div class="tt"><%= task.title %></div><div class="meta"><%- icon(statusIcon(task.status)) %><%= statuses[task.status] %><% if (task.category_path) { %> · <%- icon('tag') %><%= task.category_path %><% } %><% if (team) { %> · <%- icon('user') %><%= task.assignee_name || 'Sem responsável' %><% } %></div></div>
       </a>
     <% }) %>
   </section>

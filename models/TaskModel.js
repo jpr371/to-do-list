@@ -12,13 +12,19 @@ function scoped(scope) {
 
 // Hoje a interface usa um responsável por tarefa; a tabela task_assignees já
 // aceita vários, então a consulta pega um só para não duplicar linhas.
+// category_name / category_parent_name / category_path vêm da tabela categories
+// (a coluna antiga tasks.category é só legado das contas anteriores às categorias reais).
 const SELECT = `SELECT t.*, au.id AS assignee_id, au.name AS assignee_name, au.avatar_path AS assignee_avatar,
-    cu.name AS creator_name
+    cu.name AS creator_name,
+    cat.name AS category_name, cat.parent_id AS category_parent_id, pcat.name AS category_parent_name,
+    CASE WHEN pcat.id IS NULL THEN cat.name ELSE CONCAT(pcat.name, ' / ', cat.name) END AS category_path
   FROM tasks t
   LEFT JOIN users au ON au.id = (
     SELECT ta.user_id FROM task_assignees ta WHERE ta.task_id = t.id ORDER BY ta.assigned_at, ta.user_id LIMIT 1
   )
-  LEFT JOIN users cu ON cu.id = t.user_id`;
+  LEFT JOIN users cu ON cu.id = t.user_id
+  LEFT JOIN categories cat ON cat.id = t.category_id
+  LEFT JOIN categories pcat ON pcat.id = cat.parent_id`;
 
 const ASSIGNED_TO = 'EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = ?)';
 const UNASSIGNED = 'NOT EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id)';
@@ -28,14 +34,18 @@ function buildWhere(scope, filters = {}) {
   const where = [base.sql];
   const params = [...base.params];
   if (filters.q) {
-    where.push('(t.title LIKE ? OR t.description LIKE ? OR t.category LIKE ?)');
-    params.push(`%${filters.q}%`, `%${filters.q}%`, `%${filters.q}%`);
+    // A busca também encontra pelo nome da categoria ou da categoria principal.
+    where.push(`(t.title LIKE ? OR t.description LIKE ? OR EXISTS (
+      SELECT 1 FROM categories qc LEFT JOIN categories qp ON qp.id = qc.parent_id
+      WHERE qc.id = t.category_id AND (qc.name LIKE ? OR qp.name LIKE ?)))`);
+    params.push(`%${filters.q}%`, `%${filters.q}%`, `%${filters.q}%`, `%${filters.q}%`);
   }
   if (filters.status) { where.push('t.status = ?'); params.push(filters.status); }
   if (filters.priority) { where.push('t.priority = ?'); params.push(filters.priority); }
   if (filters.category) {
-    if (filters.category === '__none__') where.push("(t.category IS NULL OR t.category = '')");
-    else { where.push('t.category = ?'); params.push(filters.category); }
+    if (filters.category === '__none__') where.push('t.category_id IS NULL');
+    // Escolher uma categoria principal inclui as tarefas das subcategorias dela.
+    else { where.push('t.category_id IN (SELECT fc.id FROM categories fc WHERE fc.id = ? OR fc.parent_id = ?)'); params.push(Number(filters.category) || 0, Number(filters.category) || 0); }
   }
   if (filters.due === 'today') where.push('t.due_date = CURDATE()');
   if (filters.due === 'overdue') where.push("t.due_date IS NOT NULL AND t.due_date < CURDATE() AND t.status <> 'done'");
@@ -62,6 +72,15 @@ async function setAssignee(conn, taskId, userId, assignedBy) {
   );
 }
 
+// Próxima posição no fim da lista de uma categoria (null = tarefas sem categoria).
+async function nextPosition(conn, workspaceId, categoryId) {
+  const [rows] = await conn.execute(
+    'SELECT COALESCE(MAX(position), 0) + 1 AS next FROM tasks WHERE workspace_id <=> ? AND category_id <=> ?',
+    [workspaceId || null, categoryId || null]
+  );
+  return Number(rows[0].next);
+}
+
 async function inTransaction(work) {
   const conn = await pool.getConnection();
   try {
@@ -80,8 +99,9 @@ async function inTransaction(work) {
 export default class TaskModel {
   static async list(scope, filters = {}) {
     const { sql, params } = buildWhere(scope, filters);
+    // Na visão por categoria vale a ordem manual definida pelo usuário.
     const order = filters.view === 'category'
-      ? 'ORDER BY t.category ASC, t.due_date IS NULL, t.due_date ASC, t.updated_at DESC'
+      ? 'ORDER BY t.position ASC, t.id ASC'
       : 'ORDER BY t.updated_at DESC, t.id DESC';
     return query(`${SELECT} WHERE ${sql} ${order}`, params);
   }
@@ -101,26 +121,74 @@ export default class TaskModel {
   // assignment: { assigneeId } altera o responsável; omitido, mantém o atual.
   static async create(scope, data, assignment = null) {
     return inTransaction(async conn => {
+      const position = await nextPosition(conn, scope.workspaceId, data.categoryId || null);
       const [result] = await conn.execute(
-        `INSERT INTO tasks (user_id, workspace_id, title, description, category, status, priority, due_date, completed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${data.status === 'done' ? 'NOW()' : 'NULL'})`,
-        [scope.userId, scope.workspaceId, data.title, data.description, data.category, data.status, data.priority, data.dueDate || null]
+        `INSERT INTO tasks (user_id, workspace_id, title, description, category_id, position, status, priority, due_date, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${data.status === 'done' ? 'NOW()' : 'NULL'})`,
+        [scope.userId, scope.workspaceId, data.title, data.description, data.categoryId || null, position, data.status, data.priority, data.dueDate || null]
       );
       if (assignment?.assigneeId) await setAssignee(conn, result.insertId, assignment.assigneeId, scope.userId);
       return result.insertId;
     });
   }
 
+  // Trocar a categoria pelo formulário de edição manda a tarefa para o fim da lista de destino.
   static async update(scope, id, data, assignment = null) {
     const base = scoped(scope);
     return inTransaction(async conn => {
+      const [current] = await conn.execute(`SELECT t.category_id, t.workspace_id FROM tasks t WHERE ${base.sql} AND t.id = ? LIMIT 1 FOR UPDATE`, [...base.params, id]);
+      if (!current[0]) return false;
+      const newCategory = data.categoryId || null;
+      const changed = (current[0].category_id ? Number(current[0].category_id) : null) !== newCategory;
+      const position = changed ? await nextPosition(conn, current[0].workspace_id, newCategory) : null;
       const [result] = await conn.execute(
-        `UPDATE tasks t SET t.title = ?, t.description = ?, t.category = ?, t.status = ?, t.priority = ?, t.due_date = ?, ${COMPLETED}
+        `UPDATE tasks t SET t.title = ?, t.description = ?, t.category_id = ?, t.position = COALESCE(?, t.position), t.status = ?, t.priority = ?, t.due_date = ?, ${COMPLETED}
          WHERE ${base.sql} AND t.id = ?`,
-        [data.title, data.description, data.category, data.status, data.priority, data.dueDate || null, data.status, ...base.params, id]
+        [data.title, data.description, newCategory, position, data.status, data.priority, data.dueDate || null, data.status, ...base.params, id]
       );
       if (result.affectedRows && assignment) await setAssignee(conn, id, assignment.assigneeId, scope.userId);
       return result.affectedRows > 0;
+    });
+  }
+
+  // Mover para outra categoria muda apenas a categoria (e a posição, que vai para o fim da lista
+  // de destino); título, status, prioridade, prazo e responsável ficam como estão.
+  static async moveToCategory(scope, id, categoryId) {
+    const base = scoped(scope);
+    return inTransaction(async conn => {
+      const [current] = await conn.execute(`SELECT t.category_id, t.workspace_id FROM tasks t WHERE ${base.sql} AND t.id = ? LIMIT 1 FOR UPDATE`, [...base.params, id]);
+      if (!current[0]) return false;
+      const destination = categoryId || null;
+      if ((current[0].category_id ? Number(current[0].category_id) : null) === destination) return true;
+      const position = await nextPosition(conn, current[0].workspace_id, destination);
+      await conn.execute(`UPDATE tasks t SET t.category_id = ?, t.position = ? WHERE ${base.sql} AND t.id = ?`, [destination, position, ...base.params, id]);
+      return true;
+    });
+  }
+
+  // Reorganiza as tarefas de uma categoria. `ids` é a nova ordem das tarefas que estavam visíveis:
+  // elas ocupam, na nova ordem, as mesmas posições que tinham, então tarefas ocultas por filtros
+  // não se mexem. A ordem é renumerada de 1..n; só position muda (updated_at é preservado).
+  // Retorna false quando algum id não pertence a essa categoria.
+  static async reorder(scope, categoryId, ids) {
+    const base = scoped(scope);
+    return inTransaction(async conn => {
+      const [rows] = await conn.execute(
+        `SELECT t.id, t.position FROM tasks t WHERE ${base.sql} AND t.category_id <=> ? ORDER BY t.position ASC, t.id ASC FOR UPDATE`,
+        [...base.params, categoryId || null]
+      );
+      const current = rows.map(row => Number(row.id));
+      if (!ids.length || new Set(ids).size !== ids.length || !ids.every(id => current.includes(id))) return false;
+      const chosen = new Set(ids);
+      const next = [...current];
+      let cursor = 0;
+      current.forEach((id, index) => { if (chosen.has(id)) next[index] = ids[cursor++]; });
+      const previous = new Map(rows.map(row => [Number(row.id), Number(row.position)]));
+      for (let index = 0; index < next.length; index++) {
+        if (previous.get(next[index]) === index + 1) continue;
+        await conn.execute('UPDATE tasks SET position = ?, updated_at = updated_at WHERE id = ?', [index + 1, next[index]]);
+      }
+      return true;
     });
   }
 
@@ -143,14 +211,6 @@ export default class TaskModel {
       [status, status, ...base.params, ...ids]
     );
     return result.affectedRows || 0;
-  }
-
-  static async categories(scope) {
-    const base = scoped(scope);
-    return query(
-      `SELECT t.category, COUNT(*) AS qty FROM tasks t WHERE ${base.sql} AND t.category IS NOT NULL AND t.category <> '' GROUP BY t.category ORDER BY t.category ASC`,
-      base.params
-    );
   }
 
   static async dashboardCounts(scope, filters = {}) {

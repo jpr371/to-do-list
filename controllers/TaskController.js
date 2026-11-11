@@ -1,4 +1,5 @@
 import TaskModel from '../models/TaskModel.js';
+import CategoryModel from '../models/CategoryModel.js';
 import ActivityModel from '../models/ActivityModel.js';
 import WorkspaceModel from '../models/WorkspaceModel.js';
 import { canAssign, isManager, taskPermissions } from '../services/permissions.js';
@@ -8,11 +9,53 @@ function cleanTask(body) {
   return {
     title: String(body.title || '').trim().slice(0, 120),
     description: String(body.description || '').trim(),
-    category: String(body.category || '').trim().slice(0, 60),
     status: validStatus(body.status),
     priority: validPriority(body.priority),
     dueDate: String(body.due_date || '').trim() || null
   };
+}
+
+// Categoria enviada pelo formulário: category_id (vazio = sem categoria). Formulários antigos
+// mandam o nome em `category`. Sem nenhum dos dois campos, `categoryId` fica undefined (mantém a atual).
+async function readCategory(req) {
+  const { category_id: id, category: legacyName } = req.body;
+  if (id !== undefined) {
+    if (id === null || String(id).trim() === '') return { categoryId: null };
+    const category = await CategoryModel.find(req.scope, id);
+    return category ? { categoryId: category.id } : { error: 'A categoria escolhida não existe nesta área de trabalho.' };
+  }
+  if (legacyName !== undefined) return { categoryId: await CategoryModel.findOrCreateByName(req.scope, legacyName) };
+  return { categoryId: undefined };
+}
+
+// Filtro de categoria da URL: id numérico, "__none__" ou (links antigos) o nome da categoria.
+function categoryFilter(raw, flat) {
+  const value = String(raw || '').trim();
+  if (!value || value === '__none__') return value;
+  if (/^\d+$/.test(value)) return flat.some(c => c.id === Number(value)) ? value : '';
+  const byName = flat.find(c => c.depth === 0 && c.name.toLowerCase() === value.toLowerCase());
+  return byName ? String(byName.id) : '';
+}
+
+// Seções da visão por categoria: principais (com subcategorias dentro) e "Sem categoria".
+// Com filtros ativos só aparecem seções que têm tarefas.
+export function buildCategorySections(tree, tasks, filtersActive) {
+  const byCategory = new Map();
+  tasks.forEach(task => {
+    const key = task.category_id ? Number(task.category_id) : 0;
+    if (!byCategory.has(key)) byCategory.set(key, []);
+    byCategory.get(key).push(task);
+  });
+  const of = id => byCategory.get(id) || [];
+  const sections = tree.map(root => {
+    const children = root.children
+      .map(child => ({ category: child, tasks: of(child.id) }))
+      .filter(child => !filtersActive || child.tasks.length);
+    const all = [...of(root.id), ...children.flatMap(child => child.tasks)];
+    return { category: root, tasks: of(root.id), children, allTasks: all };
+  }).filter(section => !filtersActive || section.allTasks.length);
+  const loose = of(0);
+  return { sections, loose };
 }
 
 // Filtro por responsável: "me", "none" ou o id de um integrante do Workspace ativo.
@@ -48,43 +91,46 @@ async function readAssignment(req, task) {
 
 const denied = (res, message) => res.status(403).send(message);
 
+async function categoryLabel(scope, categoryId) {
+  if (!categoryId) return 'Sem categoria';
+  const category = await CategoryModel.find(scope, categoryId);
+  return category?.parent_name ? `${category.parent_name} / ${category.name}` : (category?.name || 'Sem categoria');
+}
+
 export default class TaskController {
   static async index(req, res) {
     const members = req.scope.personal ? [] : await WorkspaceModel.members(req.scope.workspaceId);
+    const tree = await CategoryModel.tree(req.scope);
+    const categories = CategoryModel.flatten(tree);
     const filters = {
       q: String(req.query.q || '').trim(),
       status: req.query.status && validStatus(req.query.status) === req.query.status ? req.query.status : '',
       priority: req.query.priority && validPriority(req.query.priority) === req.query.priority ? req.query.priority : '',
-      category: String(req.query.category || '').trim(),
+      category: categoryFilter(req.query.category, categories),
       due: String(req.query.due || ''),
       view: req.query.view === 'category' ? 'category' : 'list',
       ...assigneeFilter(req.scope, req.query.assignee, members)
     };
-    const [tasks, categories] = await Promise.all([
-      TaskModel.list(req.scope, filters),
-      TaskModel.categories(req.scope)
-    ]);
+    const tasks = await TaskModel.list(req.scope, filters);
+    tasks.forEach(task => { task.canEdit = taskPermissions(req.scope, task).edit; });
     const detailTask = req.query.action === 'view' && req.query.id ? await TaskModel.findById(req.scope, Number(req.query.id)) : null;
     let editTask = req.query.action === 'edit' && req.query.id ? await TaskModel.findById(req.scope, Number(req.query.id)) : null;
     if (editTask && !taskPermissions(req.scope, editTask).edit) {
       flash(req, 'error', 'Você não tem permissão para editar esta tarefa.');
       return res.redirect(`/tasks?action=view&id=${editTask.id}`);
     }
-    const grouped = {};
-    if (filters.view === 'category') {
-      tasks.forEach(task => {
-        const key = task.category || 'Sem categoria';
-        grouped[key] ||= [];
-        grouped[key].push(task);
-      });
-    }
+    const filtersActive = Boolean(filters.q || filters.status || filters.priority || filters.category || filters.due || filters.assignee);
+    const { sections, loose } = filters.view === 'category'
+      ? buildCategorySections(tree, tasks, filtersActive)
+      : { sections: [], loose: [] };
 
     res.render('tasks', {
       pageTitle: filters.view === 'category' ? 'Categorias' : 'Todas as tarefas',
       activePage: filters.view === 'category' ? 'categories' : 'tasks',
       tasks,
       categories,
-      grouped,
+      sections,
+      loose,
       filters,
       detailTask,
       detailPerms: detailTask ? taskPermissions(req.scope, detailTask) : null,
@@ -114,6 +160,12 @@ export default class TaskController {
       }
       const { assignment, status, error } = await readAssignment(req, task);
       if (error) return res.status(status).send(error);
+      const category = await readCategory(req);
+      if (category.error) {
+        flash(req, 'error', category.error);
+        return res.redirect(task ? `/tasks?action=edit&id=${task.id}` : '/tasks?action=new');
+      }
+      data.categoryId = category.categoryId === undefined ? (task?.category_id ? Number(task.category_id) : null) : category.categoryId;
 
       if (task) {
         await TaskModel.update(req.scope, task.id, data, assignment);
@@ -139,6 +191,22 @@ export default class TaskController {
       await ActivityModel.create(userId, `Tarefa excluída: ${task.title}`, workspaceId);
       flash(req, 'success', 'Tarefa excluída.');
       return res.redirect('/tasks');
+    }
+
+    if (action === 'move') {
+      const task = await TaskModel.findById(req.scope, Number(req.body.id || 0));
+      if (!task) return res.status(404).send('Tarefa não encontrada.');
+      if (!taskPermissions(req.scope, task).edit) return denied(res, 'Você não tem permissão para mover esta tarefa.');
+      const target = await readCategory(req);
+      const back = `/tasks?action=view&id=${task.id}${req.body.view === 'category' ? '&view=category' : ''}`;
+      if (target.error || target.categoryId === undefined) {
+        flash(req, 'error', target.error || 'Escolha a categoria de destino.');
+        return res.redirect(back);
+      }
+      await TaskModel.moveToCategory(req.scope, task.id, target.categoryId);
+      await ActivityModel.create(userId, `Tarefa movida para ${await categoryLabel(req.scope, target.categoryId)}: ${task.title}`, workspaceId);
+      flash(req, 'success', 'Tarefa movida.');
+      return res.redirect(back);
     }
 
     if (action === 'reopen' || action === 'status') {
@@ -182,6 +250,33 @@ export default class TaskController {
     if (!taskPermissions(req.scope, task).status) return res.status(403).json({ ok: false });
     await TaskModel.setStatus(req.scope, id, status);
     await ActivityModel.create(userId, `Status atualizado: ${task.title}`, req.scope.workspaceId);
+    res.json({ ok: true });
+  }
+
+  // Mover para outra categoria (arrastar e soltar ou seletor). category_id vazio = sem categoria.
+  static async moveApi(req, res) {
+    const task = await TaskModel.findById(req.scope, Number(req.body.id || 0));
+    if (!task) return res.status(404).json({ ok: false, error: 'Tarefa não encontrada.' });
+    if (!taskPermissions(req.scope, task).edit) return res.status(403).json({ ok: false, error: 'Você não tem permissão para mover esta tarefa.' });
+    const target = await readCategory(req);
+    if (target.error || target.categoryId === undefined) return res.status(422).json({ ok: false, error: target.error || 'Escolha a categoria de destino.' });
+    await TaskModel.moveToCategory(req.scope, task.id, target.categoryId);
+    const label = await categoryLabel(req.scope, target.categoryId);
+    await ActivityModel.create(req.session.user.id, `Tarefa movida para ${label}: ${task.title}`, req.scope.workspaceId);
+    res.json({ ok: true, category_id: target.categoryId, category: label });
+  }
+
+  // Nova ordem das tarefas de uma categoria: { id: tarefa arrastada, category_id, ids: [nova ordem] }.
+  static async reorderApi(req, res) {
+    const ids = [req.body.ids].flat().map(Number).filter(Number.isInteger);
+    const task = await TaskModel.findById(req.scope, Number(req.body.id || 0));
+    if (!task) return res.status(404).json({ ok: false, error: 'Tarefa não encontrada.' });
+    if (!taskPermissions(req.scope, task).edit) return res.status(403).json({ ok: false, error: 'Você não tem permissão para reorganizar esta tarefa.' });
+    const target = await readCategory(req);
+    if (target.error || target.categoryId === undefined) return res.status(422).json({ ok: false, error: target.error || 'Categoria inválida.' });
+    if (!ids.includes(task.id) || ids.length > 500) return res.status(422).json({ ok: false, error: 'Ordem inválida.' });
+    const saved = await TaskModel.reorder(req.scope, target.categoryId, ids);
+    if (!saved) return res.status(409).json({ ok: false, error: 'A lista mudou. Recarregue a página e tente de novo.' });
     res.json({ ok: true });
   }
 }

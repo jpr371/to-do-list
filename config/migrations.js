@@ -240,6 +240,53 @@ const migrations = [
       await conn.query(`INSERT IGNORE INTO workspace_members (workspace_id, user_id, role)
         SELECT id, owner_id, 'owner' FROM workspaces WHERE kind = 'team'`);
     }
+  },
+  {
+    // Categorias reais (com subcategorias) e ordem manual das tarefas.
+    id: '2026_11_11_004_categories_and_task_order',
+    async up(conn) {
+      // Categoria principal: parent_id NULL. Subcategoria: parent_id aponta para uma principal
+      // (a regra de um único nível é verificada no CategoryModel).
+      await conn.query(`CREATE TABLE IF NOT EXISTS categories (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        workspace_id INT UNSIGNED NOT NULL,
+        parent_id INT UNSIGNED NULL,
+        name VARCHAR(60) NOT NULL,
+        created_by INT UNSIGNED NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_categories_workspace (workspace_id, parent_id),
+        KEY idx_categories_parent (parent_id),
+        KEY idx_categories_creator (created_by),
+        CONSTRAINT fk_categories_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+        CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE,
+        CONSTRAINT fk_categories_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+      await addColumn(conn, 'tasks', 'category_id', 'INT UNSIGNED NULL AFTER category');
+      await addColumn(conn, 'tasks', 'position', 'INT NOT NULL DEFAULT 0 AFTER category_id');
+      if (!(await indexExists(conn, 'tasks', 'idx_tasks_category_position'))) {
+        await conn.query('ALTER TABLE tasks ADD KEY idx_tasks_category_position (workspace_id, category_id, position)');
+      }
+      if (!(await constraintExists(conn, 'tasks', 'fk_tasks_category'))) {
+        await conn.query('ALTER TABLE tasks ADD CONSTRAINT fk_tasks_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL');
+      }
+
+      // Categorias que já existiam como texto nas tarefas viram registros (uma por Workspace e nome).
+      await conn.query(`INSERT INTO categories (workspace_id, name, created_by)
+        SELECT t.workspace_id, MIN(t.category), MIN(t.user_id)
+        FROM tasks t
+        WHERE t.workspace_id IS NOT NULL AND t.category IS NOT NULL AND t.category <> ''
+          AND NOT EXISTS (SELECT 1 FROM categories c WHERE c.workspace_id = t.workspace_id AND c.parent_id IS NULL AND c.name = t.category)
+        GROUP BY t.workspace_id, t.category`);
+      await conn.query(`UPDATE tasks t
+        JOIN categories c ON c.workspace_id = t.workspace_id AND c.parent_id IS NULL AND c.name = t.category
+        SET t.category_id = c.id, t.updated_at = t.updated_at
+        WHERE t.category_id IS NULL AND t.category IS NOT NULL AND t.category <> ''`);
+      // Ordem inicial: a ordem de criação.
+      await conn.query('UPDATE tasks SET position = id, updated_at = updated_at WHERE position = 0');
+    }
   }
 ];
 

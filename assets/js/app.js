@@ -256,6 +256,160 @@
     });
   }
 
+  // Visão por categoria: arrastar para reordenar ou mover, seletor de categoria e botões subir/descer.
+  const catBoard = document.querySelector('[data-cat-board]');
+  if (catBoard) {
+    const taskRows = list => [...list.querySelectorAll(':scope > .cat-task')];
+    const idsOf = list => taskRows(list).map(row => Number(row.dataset.taskId));
+    const listOf = el => el.closest('[data-cat-list]') || el.closest('.cat-head')?.closest('[data-cat-group]')?.querySelector(':scope > .cat-body > [data-cat-list]');
+    const endOf = list => list.querySelector(':scope > .cat-empty');
+    const categoryOf = list => list.dataset.categoryId || null;
+
+    const post = async (url, payload) => {
+      const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Não foi possível salvar.');
+      return data;
+    };
+    const saveOrder = (row, list) => post('/api/tasks/reorder', { id: Number(row.dataset.taskId), category_id: categoryOf(list), ids: idsOf(list) });
+
+    // Contagem, porcentagem e barra de cada grupo (a principal soma as subcategorias) e botões das pontas.
+    const refresh = () => {
+      catBoard.querySelectorAll('[data-cat-group]').forEach(group => {
+        const rows = [...group.querySelectorAll('.cat-task')];
+        const done = rows.filter(row => row.dataset.status === 'done').length;
+        const pct = rows.length ? Math.round(done / rows.length * 100) : 0;
+        const head = group.querySelector(':scope > .cat-head');
+        head.querySelector('[data-cat-count]').textContent = `${rows.length} tarefa${rows.length === 1 ? '' : 's'}`;
+        head.querySelector('[data-cat-pct]').textContent = `${pct}%`;
+        group.querySelector(':scope > .cat-progress [data-cat-bar]').style.width = `${pct}%`;
+      });
+      catBoard.querySelectorAll('[data-cat-list]').forEach(list => {
+        const rows = taskRows(list);
+        rows.forEach((row, index) => {
+          const up = row.querySelector('[data-move-up]');
+          const down = row.querySelector('[data-move-down]');
+          if (up) up.disabled = index === 0;
+          if (down) down.disabled = index === rows.length - 1;
+        });
+      });
+    };
+    const flash = row => { row.classList.remove('moved'); void row.offsetWidth; row.classList.add('moved'); };
+    const labelOf = list => list.closest('[data-cat-group]')?.querySelector(':scope > .cat-head .name')?.textContent || 'categoria';
+
+    let dragRow = null;
+    let dragSource = null;
+    let dragNext = null;
+    let dragBefore = [];
+    let dropped = false;
+    const clearOver = () => catBoard.querySelectorAll('.dragover').forEach(el => el.classList.remove('dragover'));
+
+    catBoard.addEventListener('dragstart', e => {
+      const row = e.target.closest?.('.cat-task[draggable="true"]');
+      if (!row) return;
+      dragRow = row;
+      dragSource = row.parentElement;
+      dragNext = row.nextElementSibling;
+      dragBefore = idsOf(dragSource);
+      dropped = false;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', row.dataset.taskId);
+    });
+    catBoard.addEventListener('dragover', e => {
+      if (!dragRow) return;
+      const list = listOf(e.target);
+      if (!list) return;
+      e.preventDefault();
+      clearOver();
+      list.classList.add('dragover');
+      const after = [...list.querySelectorAll(':scope > .cat-task:not(.dragging)')]
+        .find(row => { const box = row.getBoundingClientRect(); return e.clientY < box.top + box.height / 2; });
+      list.insertBefore(dragRow, after || endOf(list));
+    });
+    catBoard.addEventListener('drop', async e => {
+      if (!dragRow) return;
+      const list = listOf(e.target);
+      if (!list) return;
+      e.preventDefault();
+      dropped = true;
+      clearOver();
+      const row = dragRow;
+      const source = dragSource;
+      const changedList = list !== source;
+      const unchanged = !changedList && JSON.stringify(idsOf(list)) === JSON.stringify(dragBefore);
+      if (unchanged) return refresh();
+      try {
+        if (changedList) await post('/api/tasks/move', { id: Number(row.dataset.taskId), category_id: categoryOf(list) });
+        await saveOrder(row, list);
+        const select = row.querySelector('[data-move-select]');
+        if (select) select.value = categoryOf(list) || '';
+        flash(row);
+        toast(changedList ? `Movida para “${labelOf(list)}”.` : 'Ordem salva.');
+      } catch (err) {
+        source.insertBefore(row, dragNext && dragNext.parentElement === source ? dragNext : endOf(source));
+        toast(err.message, true);
+      }
+      refresh();
+    });
+    catBoard.addEventListener('dragend', () => {
+      if (!dragRow) return;
+      dragRow.classList.remove('dragging');
+      // Soltou fora de qualquer categoria: volta para onde estava.
+      if (!dropped) dragSource.insertBefore(dragRow, dragNext && dragNext.parentElement === dragSource ? dragNext : endOf(dragSource));
+      clearOver();
+      dragRow = null;
+      refresh();
+    });
+
+    // Mover pelo seletor de categoria da própria linha.
+    catBoard.addEventListener('change', async e => {
+      const select = e.target.closest?.('[data-move-select]');
+      if (!select) return;
+      const row = select.closest('.cat-task');
+      const source = row.parentElement;
+      const previous = categoryOf(source) || '';
+      const target = [...catBoard.querySelectorAll('[data-cat-list]')].find(list => (list.dataset.categoryId || '') === select.value);
+      select.disabled = true;
+      try {
+        const data = await post('/api/tasks/move', { id: Number(row.dataset.taskId), category_id: select.value || null });
+        if (target) { target.insertBefore(row, endOf(target)); flash(row); } else row.remove();
+        toast(`Movida para “${data.category}”.`);
+      } catch (err) {
+        select.value = previous;
+        toast(err.message, true);
+      }
+      select.disabled = false;
+      refresh();
+    });
+
+    // Subir / descer uma posição (alternativa ao arrastar, também para toque e teclado).
+    catBoard.addEventListener('click', async e => {
+      const button = e.target.closest?.('[data-move-up],[data-move-down]');
+      if (!button || button.disabled) return;
+      const row = button.closest('.cat-task');
+      const list = row.parentElement;
+      const up = button.hasAttribute('data-move-up');
+      const sibling = up ? row.previousElementSibling : row.nextElementSibling;
+      if (!sibling?.classList.contains('cat-task')) return;
+      // `row` e `sibling` trocam de lugar; desfazer é a troca inversa.
+      const apply = () => (up ? list.insertBefore(row, sibling) : list.insertBefore(sibling, row));
+      const undo = () => (up ? list.insertBefore(sibling, row) : list.insertBefore(row, sibling));
+      apply();
+      refresh();
+      button.focus();
+      try {
+        await saveOrder(row, list);
+        toast('Ordem salva.');
+      } catch (err) {
+        undo();
+        refresh();
+        toast(err.message, true);
+      }
+    });
+    refresh();
+  }
+
   // Erros nos campos
   function fieldBox(el) {
     return el.closest('.field') || el.closest('[data-error-for]') || el.parentElement;

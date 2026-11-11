@@ -88,8 +88,7 @@
         <div class="field">
           <span class="field-label"><%- icon('bell') %>Notificações</span>
           <label class="check-row"><input type="checkbox" name="notify_overdue" value="1" <%= preferences.notifyOverdue ? 'checked' : '' %>><span><b>Tarefas atrasadas</b><small>Mostra a quantidade de tarefas atrasadas no menu lateral.</small></span></label>
-          <label class="check-row"><input type="checkbox" name="notify_due_today" value="1" <%= preferences.notifyDueToday ? 'checked' : '' %>><span><b>Prazos do dia</b><small>Mostra um aviso no painel ao entrar quando houver tarefas com prazo para hoje.</small></span></label>
-        </div>
+          <label class="check-row"><input type="checkbox" name="notify_due_today" value="1" <%= preferences.notifyDueToday ? 'checked' : '' %>><span><b>Prazos do dia</b><small>Mostra um aviso no painel ao entrar quando houver tarefas com prazo para hoje.</small></span></label>        </div>
         <div class="form-actions"><button class="btn btn-primary" type="submit" data-loading-text="Salvando..."><%- icon('check','sm') %>Salvar preferências</button></div>
       </form>
     </section>

@@ -7,7 +7,6 @@ import { applyMiddlewares } from './middlewares/index.js';
 import { testConnection } from './config/database.js';
 import { runMigrations } from './config/migrations.js';
 import { templateLocals } from './utils/viewHelpers.js';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();

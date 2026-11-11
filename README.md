@@ -97,7 +97,7 @@ Tambem e possivel criar uma conta nova em `/register`.
 
 ## Colaboracao em equipe
 
-- **Convites** (`/workspaces/:id`, painel *Convidar integrante*): por link ou vinculados a um e-mail, com cargo inicial e validade (1, 3, 7 ou 30 dias). Cada convite vale uma vez; o banco guarda so o hash SHA-256 do token e o link aparece uma unica vez para quem o criou. Convites por e-mail tambem aparecem no painel do destinatario. O sistema nao envia e-mails: o link deve ser repassado pela equipe.
+- **Convites** (`/workspaces/:id`, painel *Convidar integrante*): por link ou vinculados a um e-mail, com cargo inicial e validade (1, 3, 7 ou 30 dias). Cada convite vale uma vez; o banco guarda so o hash SHA-256 do token e o link aparece uma unica vez para quem o criou. Convites por e-mail tambem aparecem no painel do destinatario. Os convites nao sao enviados por e-mail: o link deve ser repassado pela equipe.
 - **Fluxo do convidado** (`/invite/:token`): quem nao esta logado vai para o login ou cadastro e volta ao convite depois; aceitar adiciona o usuario a equipe e ativa o Workspace no seletor lateral.
 - **Integrantes e cargos**: lista com avatar, e-mail, cargo e tarefas em aberto; promocao/rebaixamento, transferencia de propriedade, remocao e saida da equipe, sempre com confirmacao.
 - **Responsaveis**: tarefas da equipe podem ter um responsavel (tabela `task_assignees`, ja preparada para varios), com filtro por integrante e *Atribuidas a mim* na lista, no Kanban e no Dashboard.
@@ -119,15 +119,23 @@ Tambem e possivel criar uma conta nova em `/register`.
 
 As regras ficam em `services/permissions.js` e sao aplicadas no backend (`middlewares/workspace.js` e controllers). O proprietario nunca pode ser removido; integrantes removidos perdem o acesso imediatamente e suas atribuicoes sao desfeitas. Convites deixam de valer se quem os criou perder a permissao de conceder aquele cargo.
 
+## Categorias, subcategorias e ordem das tarefas
+
+- **Categorias** (`/categories`): criar, renomear e excluir. As categorias pertencem ao Workspace ativo. Qualquer integrante cria; renomear e excluir e de quem criou a categoria ou de quem administra a equipe (no modo pessoal, sempre o proprio usuario). Excluir nunca apaga tarefas: elas ficam sem categoria.
+- **Subcategorias**: ha dois niveis (categoria principal e subcategoria). Em `/categories`, use *Subcategoria* na linha da categoria principal. Na visao por categoria (`/tasks?view=category`) a subcategoria aparece recuada dentro da principal; filtrar pela principal inclui as tarefas das subcategorias.
+- **Mover entre categorias**: arrastando a tarefa para outro bloco, pelo seletor da propria linha ou, na tela de detalhes, em *Mover para outra categoria*. So muda a categoria (a tarefa vai para o fim da lista de destino); titulo, status, prioridade, prazo e responsavel ficam como estao. Quem pode mover e quem pode editar a tarefa.
+- **Ordem manual**: arraste para cima/baixo dentro da categoria ou use os botoes de subir/descer (tambem para toque e teclado). A ordem e salva automaticamente (coluna `tasks.position`) e vale em qualquer sessao. Reordenar nao altera status, prioridade, prazo nem a data de atualizacao.
+- Contas anteriores: a migracao `2026_11_11_004_categories_and_task_order` transforma as categorias que eram texto nas tarefas em registros da tabela `categories` (nomes iguais, sem diferenciar maiusculas, viram uma so) e preserva todas as tarefas. A coluna antiga `tasks.category` fica como legado e nao e mais usada.
+
 ## Testes automatizados
 
-Os testes de integracao sobem o servidor real contra um banco de testes e percorrem por HTTP os fluxos de convite, cargos, atribuicao, isolamento entre equipes, Dashboard, avatar e login/logout com varias contas:
+Os testes de integracao sobem o servidor real contra bancos de testes e percorrem por HTTP os fluxos de convite, cargos, atribuicao, isolamento entre equipes, Dashboard, avatar, login/logout, categorias/subcategorias, mover e reordenar tarefas:
 
 ```bash
 TEST_DB_NAME=taskflow_test TEST_DB_PORT=3306 npm test
 ```
 
-O banco informado e apagado e recriado a cada execucao; por seguranca, o nome precisa terminar em `_test`. Variaveis opcionais: `TEST_DB_HOST`, `TEST_DB_USER`, `TEST_DB_PASS`, `TEST_PORT`.
+Cada arquivo de teste usa o proprio banco: `taskflow_test` (colaboracao) e `taskflow_cat_test` (categorias). Os bancos sao apagados e recriados a cada execucao; por seguranca, o nome precisa terminar em `_test`. Variaveis opcionais: `TEST_DB_HOST`, `TEST_DB_USER`, `TEST_DB_PASS`, `TEST_PORT`, `TEST_CAT_DB_NAME`, `TEST_CAT_PORT`.
 
 ## Roteiro de teste manual
 
@@ -162,7 +170,13 @@ O banco informado e apagado e recriado a cada execucao; por seguranca, o nome pr
    - A pagina `/workspaces/:id` so abre para membros.
    - A edicao de equipe exige o papel `owner` no backend.
 
-6. Colaboracao:
+6. Categorias:
+   - Em *Categorias > Gerenciar categorias*, crie uma categoria e uma subcategoria dentro dela.
+   - Crie tarefas nas duas, abra a visao por categoria e confirme a subcategoria recuada.
+   - Mova uma tarefa pelo seletor, arrastando e pela tela de detalhes; confirme que so a categoria muda.
+   - Reordene com arrastar ou com as setas, recarregue a pagina e confirme que a ordem foi mantida.
+
+7. Colaboracao:
    - Com uma conta de equipe, abra *Equipe* e gere um convite.
    - Abra o link em uma janela anonima, crie uma conta e aceite.
    - Atribua uma tarefa ao novo integrante, entre com ele e altere o status.

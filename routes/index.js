@@ -3,6 +3,7 @@ import AuthController from '../controllers/AuthController.js';
 import DashboardController from '../controllers/DashboardController.js';
 import TaskController from '../controllers/TaskController.js';
 import KanbanController from '../controllers/KanbanController.js';
+import CategoryController from '../controllers/CategoryController.js';
 import ProfileController from '../controllers/ProfileController.js';
 import WorkspaceController from '../controllers/WorkspaceController.js';
 import MemberController from '../controllers/MemberController.js';
@@ -72,5 +73,12 @@ router.get('/tasks', requireAuth, TaskController.index);
 router.post('/tasks', requireAuth, TaskController.handle);
 router.get('/kanban', requireAuth, KanbanController.index);
 router.post('/api/task-status', requireAuth, TaskController.statusApi);
+router.post('/api/tasks/move', requireAuth, TaskController.moveApi);
+router.post('/api/tasks/reorder', requireAuth, TaskController.reorderApi);
+
+router.get('/categories', requireAuth, CategoryController.index);
+router.post('/categories', requireAuth, CategoryController.create);
+router.post('/categories/:id', requireAuth, CategoryController.rename);
+router.post('/categories/:id/delete', requireAuth, CategoryController.remove);
 
 export default router;

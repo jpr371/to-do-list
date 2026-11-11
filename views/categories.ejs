@@ -1,0 +1,71 @@
+<%- include('partials/app-start', { pageTitle, activePage }) %>
+<%
+  const rootCount = tree.length;
+  const subCount = tree.reduce((sum, root) => sum + root.children.length, 0);
+  const deleteText = cat => cat.children && cat.children.length
+    ? `"${cat.name}" e as ${cat.children.length} subcategoria(s) serão excluídas. As tarefas não são apagadas: ficam sem categoria.`
+    : (cat.own_count ? `"${cat.name}" será excluída. As ${cat.own_count} tarefa(s) não são apagadas: ficam sem categoria.` : `"${cat.name}" será excluída.`);
+  const row = (cat, sub) => {
+    const manage = canManage(cat);
+    const total = cat.total_count;
+    return { cat, sub, manage, total };
+  };
+%>
+<div class="cm-layout">
+  <section class="panel cm-new">
+    <div class="panel-head"><h3><span class="h-ic"><%- icon('plus') %></span>Nova categoria</h3></div>
+    <form method="post" action="/categories" class="panel-form">
+      <div class="field"><label for="cm-name"><%- icon('tag') %>Nome</label><input id="cm-name" name="name" maxlength="60" required placeholder="Ex: Trabalho"></div>
+      <div class="field"><label for="cm-parent"><%- icon('list') %>Dentro de</label>
+        <select id="cm-parent" name="parent_id"><option value="">Nenhuma (categoria principal)</option><% tree.forEach(root => { %><option value="<%= root.id %>"><%= root.name %></option><% }) %></select>
+        <small class="field-hint">Escolha uma categoria principal para criar uma subcategoria dentro dela.</small>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit"><%- icon('check','sm') %>Criar</button></div>
+    </form>
+  </section>
+
+  <section class="panel cm-list">
+    <div class="panel-head"><h3><span class="h-ic sky"><%- icon('tag') %></span>Categorias</h3><span class="pill" title="<%= rootCount %> principal(is) e <%= subCount %> subcategoria(s)"><%= rootCount + subCount %></span></div>
+    <% if (!tree.length) { %>
+      <div class="panel-empty"><%- icon('tag') %><span>Nenhuma categoria ainda. Crie a primeira ao lado.</span></div>
+    <% } %>
+    <% tree.forEach(root => { %>
+      <% [row(root, false), ...root.children.map(child => row(child, true))].forEach(({ cat, sub, manage, total }) => { %>
+      <div class="cm-row<%= sub ? ' sub' : '' %>" data-category-row="<%= cat.id %>">
+        <span class="cat-swatch cm-swatch" style="--c:<%= catColor(sub ? root.name : cat.name) %>"><%= cat.name[0].toUpperCase() %></span>
+        <div class="cm-main">
+          <div class="cm-name"><%= cat.name %><% if (sub) { %><span class="cm-of">em <%= root.name %></span><% } %></div>
+          <div class="cm-count"><%= total %> tarefa<%= total === 1 ? '' : 's' %><% if (!sub && root.children.length) { %> (inclui subcategorias)<% } %></div>
+        </div>
+        <div class="cm-actions">
+          <a class="btn btn-ghost btn-sm" href="/tasks?view=category&category=<%= cat.id %>"><%- icon('list','sm') %>Ver tarefas</a>
+          <% if (!sub) { %>
+          <details class="cm-edit">
+            <summary class="btn btn-ghost btn-sm"><%- icon('plus','sm') %>Subcategoria</summary>
+            <form method="post" action="/categories" class="cm-inline">
+              <input type="hidden" name="parent_id" value="<%= cat.id %>">
+              <input name="name" maxlength="60" required placeholder="Nome da subcategoria" aria-label="Nome da subcategoria de <%= cat.name %>">
+              <button class="btn btn-primary btn-sm" type="submit"><%- icon('check','sm') %>Criar</button>
+            </form>
+          </details>
+          <% } %>
+          <% if (manage) { %>
+          <details class="cm-edit">
+            <summary class="btn btn-ghost btn-sm"><%- icon('pencil','sm') %>Renomear</summary>
+            <form method="post" action="/categories/<%= cat.id %>" class="cm-inline">
+              <input name="name" maxlength="60" required value="<%= cat.name %>" aria-label="Novo nome de <%= cat.name %>">
+              <button class="btn btn-primary btn-sm" type="submit"><%- icon('check','sm') %>Salvar</button>
+            </form>
+          </details>
+          <form method="post" action="/categories/<%= cat.id %>/delete" data-confirm data-confirm-title="Excluir categoria?" data-confirm-text="<%= deleteText(cat) %>" data-confirm-ok="Excluir">
+            <button class="btn btn-danger btn-sm" type="submit" aria-label="Excluir <%= cat.name %>"><%- icon('trash','sm') %>Excluir</button>
+          </form>
+          <% } %>
+        </div>
+      </div>
+      <% }) %>
+    <% }) %>
+  </section>
+</div>
+<%- include('partials/confirm') %>
+<%- include('partials/app-end') %>

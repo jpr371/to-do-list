@@ -1,0 +1,44 @@
+<%
+  // category: registro da árvore (ou null = "Sem categoria"); tasks: tarefas diretas; children: subcategorias [{ category, tasks }].
+  const nested = children || [];
+  const allTasks = [...tasks, ...nested.flatMap(child => child.tasks)];
+  const total = allTasks.length;
+  const doneTotal = allTasks.filter(t => t.status === 'done').length;
+  const pct = total ? Math.round(doneTotal / total * 100) : 0;
+  const label = category ? category.name : 'Sem categoria';
+  const catId = category ? category.id : '';
+%>
+<section class="cat-group open<%= depth ? ' is-sub' : '' %>" style="--c:<%= catColor(label) %>" data-cat-group data-category-id="<%= catId %>">
+  <div class="cat-head" data-cat-drop>
+    <div class="l"><span class="cat-swatch"><%= label[0].toUpperCase() %></span><div><span class="name"><%= label %></span><span class="count"><span data-cat-count><%= total %> tarefa<%= total === 1 ? '' : 's' %></span> · <span data-cat-pct><%= pct %>%</span> feito</span></div></div>
+    <a class="panel-link" href="/tasks?category=<%= category ? category.id : '__none__' %>">Ver<%- icon('arrow-right') %></a>
+  </div>
+  <div class="cat-progress"><i data-cat-bar style="width:<%= pct %>%"></i></div>
+  <div class="cat-body">
+    <div class="cat-tasks" data-cat-list data-category-id="<%= catId %>">
+      <% tasks.forEach((task, index) => { %>
+        <div class="cat-task<%= task.status === 'done' ? ' is-done' : '' %>" data-task-id="<%= task.id %>" data-status="<%= task.status %>" <% if (task.canEdit) { %>draggable="true"<% } %>>
+          <% if (task.canEdit) { %><span class="cat-grip" title="Arraste para reordenar ou mover"><%- icon('grip','sm') %></span><% } else { %><span class="cat-grip off" title="Você não pode reorganizar esta tarefa"><%- icon('lock','sm') %></span><% } %>
+          <a class="tt" href="/tasks?view=category&action=view&id=<%= task.id %>"><%= task.title %></a>
+          <%- statusPill(task.status) %>
+          <% if (task.canEdit) { %>
+          <div class="cat-tools">
+            <button class="mini-btn" type="button" data-move-up aria-label="Mover para cima: <%= task.title %>" title="Subir"><%- icon('arrow-up','sm') %></button>
+            <button class="mini-btn" type="button" data-move-down aria-label="Mover para baixo: <%= task.title %>" title="Descer"><%- icon('arrow-down','sm') %></button>
+            <select class="select-sm cat-move" data-move-select aria-label="Mover &quot;<%= task.title %>&quot; para outra categoria">
+              <option value="" <%= !catId ? 'selected' : '' %>>Sem categoria</option>
+              <% categories.forEach(opt => { %><option value="<%= opt.id %>" <%= String(opt.id) === String(catId) ? 'selected' : '' %>><%= opt.depth ? '  ↳ ' + opt.name : opt.name %></option><% }) %>
+            </select>
+          </div>
+          <% } %>
+        </div>
+      <% }) %>
+      <div class="cat-empty"><%- icon('inbox','sm') %>Nenhuma tarefa aqui. Arraste uma tarefa para cá.</div>
+    </div>
+    <% if (nested.length) { %>
+    <div class="cat-subs">
+      <% nested.forEach(child => { %><%- include('category-group', { category: child.category, tasks: child.tasks, children: [], depth: 1, categories }) %><% }) %>
+    </div>
+    <% } %>
+  </div>
+</section>
